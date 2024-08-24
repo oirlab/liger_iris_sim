@@ -1,0 +1,10 @@
+numpy<2
+astropy
+scipy
+matplotlib
+
+[dev]
+check-manifest
+
+[test]
+coverage

@@ -1,0 +1,26 @@
+Metadata-Version: 2.1
+Name: liger_iris_sim
+Version: 0.0.1
+Summary: Simulations for Liger (Keck) and IRIS (TMT)
+Author-email: "Bryson L. Cale" <bryson.cale1@gmail.com>
+Maintainer-email: "Bryson L. Cale" <bryson.cale1@gmail.com>
+Project-URL: Homepage, https://github.com/astrobc1/liger_iris_sim
+Project-URL: Bug Reports, https://github.com/astrobc1/liger_iris_sim/issues
+Keywords: astronomy
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Astronomers
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: numpy<2
+Requires-Dist: astropy
+Requires-Dist: scipy
+Requires-Dist: matplotlib
+Provides-Extra: dev
+Requires-Dist: check-manifest; extra == "dev"
+Provides-Extra: test
+Requires-Dist: coverage; extra == "test"
+
+# liger_iris_sim
