@@ -12,7 +12,7 @@ from filters import get_iris_filter_data
 
 
 def get_sky_background(
-        filter : str, collarea : float, resolution : float | None = None, ohsim : bool = True,
+        filt : str, collarea : float, resolution : float | None = None, ohsim : bool = True,
         T_tel : float = 275, T_atm : float = 258, T_aos : float = 243, T_zod : float = 5800,
         Em_tel : float = 0.09, Em_atm : float = 0.2, Em_aos : float = 0.01, Em_zod : float = 1.47E-12,
         airmass : str = '10', vapor : str = '15',
@@ -20,8 +20,8 @@ def get_sky_background(
     ):
 
     # Filter info
-    filter_filename = f'{simdir}/info/iris_filter_{filter}.dat'
-    filter_data = get_iris_filter_data(filter_filename, filter)
+    filter_filename = f'{simdir}info/iris_filter_{filt}.dat'
+    filter_data = get_iris_filter_data(filter_filename, filt)
     backmag = filter_data['backmag']
     wavemin = filter_data['wavemin']
     wavemax = filter_data['wavemax']

@@ -5,9 +5,8 @@ import scipy.constants
 c = scipy.constants.c # m/s
 h = scipy.constants.h # J s
 
-import utils
-from filters import get_iris_filter_data
-from psf import get_iris_imager_psf
+from . import utils
+from .filters import get_iris_filter_data
 
 # SNR
 # SNR equation:
@@ -18,15 +17,16 @@ from psf import get_iris_imager_psf
 # R -> read noise (electrons)
 
 def iris_sim_imager(
-        source_image : np.ndarray, filter : str, scale : float,
-        itime : float, n_frames : int,
-        collarea : float, bgmag : float | None = None, efftot : float | None = None,
-        gain : float = 1.0, read_noise : float = 1.0, dark_current : float = 0,
+        source_image : np.ndarray, filt : str,
+        itime : float, scale : float = 0.004, n_frames : int = 1,
+        collarea : float = 630, bgmag : float | None = None, efftot : float | None = None,
+        gain : float = 3.04, read_noise : float = 5, dark_current : float = 0.002,
         saturation : bool = True, zenith : str = '45', simdir : str = '/data/group/data/iris/sim/',
     ):
 
     # Filter info
-    filter_data = get_iris_filter_data(filter, simdir=simdir)
+    filter_filename = f'{simdir}info/filter_info.dat'
+    filter_data = get_iris_filter_data(filter_filename, filt=filt)
     wi, wc, wf = filter_data['wavemin'], filter_data['wavecenter'], filter_data['wavemax']
 
     # Calculate throughput
@@ -45,13 +45,16 @@ def iris_sim_imager(
         bgmag = filter_data['imagmag']
 
     # Pixel size on sky
-    pixsize = scale**2 # arcsec^2 / pixel^2
+    pixsize = scale**2 # arcsec^2 / spaxial
 
     # Convert background to photons / s / meter^2
     sky_background_rate_m2 = filter_data['zp'] * 10**(-0.4 * bgmag)
 
     # Integrate background over telescope aperture and include efficiency
     sky_background_rate = sky_background_rate_m2 * collarea * efftot # photons / second
+
+    # Distribute over spaxial
+    sky_background_rate *= pixsize # photons arcsec^2 / second / spaxial
 
     # Integrate source image over telescope aperture and include efficiency
     source_rate = source_image * collarea * efftot # photons / second

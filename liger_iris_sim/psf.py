@@ -2,24 +2,30 @@ from astropy.io import fits
 import numpy as np
 import re
 import os
-from utils import frebin
+from .utils import frebin
 
 
-def get_iris_imager_psf(wavelength, x, y, zenith='45', itime=300, atm='50', psf_dir='/data/group/data/iris/sim/psfs/'):
+def get_iris_imager_psf(
+        wavelength : float, x : float = 8.0, y : float = 8.0,
+        zenith : str = '45', itime : float = 300, atm : str = '50',
+        simdir : str = '/data/group/data/iris/sim/'
+    ):
     itimes = np.array([1.4, 300])
-    k = np.argmin(itimes - itime)
+    k = np.argmin(np.abs(itimes - itime))
+    itime = itimes[k]
     if itime == int(itime):
         itime = int(itime)
+    zenith = int(zenith)
     xs = np.array([0.6, 4.7, 8.8, 12.9, 17])
     ys = np.array([0.6, 4.7, 8.8, 12.9, 17])
     x = xs[np.argmin(np.abs(xs - x))]
-    y = xs[np.argmin(np.abs(xs - x))]
+    y = xs[np.argmin(np.abs(ys - y))]
     if x == int(x):
         x = int(x)
     if y == int(y):
         y = int(y)
-    filename = psf_dir + f"za{zenith}_{int(atm)}p_im_{itime}s{os.sep}evlpsfcl_1_x{x}_y{y}_2mas.fits"
-    psf, info = read_iris_psf(filename, wavelength=wavelength)
+    filename = simdir + f"psfs/za{zenith}_{int(atm)}p_im_{itime}s{os.sep}evlpsfcl_1_x{x}_y{y}_2mas.fits"
+    psf, info = read_iris_imager_psf(filename, wavelength=wavelength)
     return psf, info
 
 
@@ -29,29 +35,39 @@ def bin_psf(psf : np.ndarray, scale_in : tuple, scale_out : tuple):
     return frebin(psf, shape=shape_out, total=True)
 
 
-def parse_iris_psf_loc(filename : str):
+def parse_iris_imager_psf_loc(filename : str):
     x, y = filename.split('/')[-1].split('_')[2:4]
     x, y = x[1:], y[1:]
     x, y = float(x), float(y)
     return x, y
 
 
-def read_iris_psf(filename : str, hdunum=None, wavelength=None):
+def read_iris_imager_psf(filename : str, hdunum=None, wavelength=None):
+    if hdunum is None:
+        hdunum = get_imager_psf_hdu_for_wavelength(filename, wavelength)
     with fits.open(filename) as hdulist:
-        if hdunum is None:
-            waves = np.full(len(hdulist), np.nan)
-            for i in range(len(hdulist)):
-                header = hdulist[i].header
-                info = parse_iris_psf_info(header)
-                waves[i] = info['wavelength']
-        k = np.argmin(np.abs(waves - wavelength))
-        psf = hdulist[k].data
-        info = {key.lower() : val for key, val in info.items()}
+        psf = hdulist[hdunum].data
+        info = parse_iris_psf_header(hdulist[hdunum].header)
         info['filename'] = filename
+        info['hdunum'] = hdunum
+        info['atm'] = filename.split('/')[-2][2:4]
+        info['weather'] = filename.split('/')[-2][5:7]
+        info['detector'] = 'IMG1'
     return psf, info
 
 
-def parse_iris_psf_info(header):
+def get_imager_psf_hdu_for_wavelength(filename : str, wavelength : float):
+    with fits.open(filename) as hdulist:
+        waves = np.full(len(hdulist), np.nan)
+        for i in range(len(hdulist)):
+            header = hdulist[i].header
+            info = parse_iris_psf_header(header)
+            waves[i] = info['wavelength']
+        hdunum = np.argmin(np.abs(waves - wavelength))
+    return hdunum
+
+
+def parse_iris_psf_header(header : fits.Header):
 
     # Split into a list
     comments = ""
