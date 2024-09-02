@@ -2,93 +2,91 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as interp
 import scipy.constants
+
 c = scipy.constants.c # m/s
 h = scipy.constants.h # J s
 
-from . import utils
-from .filters import get_iris_filter_data
-from .psf import get_iris_imager_psf
 
-
-# Positions in arcsec
-def make_point_source_iris_imager(
-        xd : np.ndarray, yd : np.ndarray, magnitudes : np.ndarray,
-        scale : float, filt : str,
-        psf_files : list[str] | None = None, psfs : list[np.ndarray] | None = None,
-        size : tuple[int, int] = (4096, 4096),
+# Positions in detector coordinates
+def make_point_source_image(
+        xdet : np.ndarray, ydet : np.ndarray, fluxes : np.ndarray,
+        size : tuple[int, int],
+        psfs : list[np.ndarray],
         image_out : np.ndarray | None = None,
-        itime : float = 300, atm : str = '50', zenith : str = '45',
-        simdir : str = '/data/group/data/iris/sim/',
     ):
-    
-    # Read in filter info
-    filter_filename = f'{simdir}info/filter_info.dat'
-    filter_data = get_iris_filter_data(filter_filename, filt)
 
     # Number of sources
-    n_sources = len(xd)
-    assert n_sources == len(yd) == len(magnitudes)
+    assert len(xdet) == len(ydet) == len(fluxes) == len(psfs)
+    n_sources = len(xdet)
 
     # Output image in units phot / s / m^2
     if image_out is None:
         image_out = np.zeros(shape=size)
 
-    if psfs is None:
-        psfs_out = []
-    else:
-        psfs_out = psfs.copy()
-
     # Loop over point sources
     for i in range(n_sources):
 
-        # Location of this source relative to on-axis
-        x, y = xd[i], yd[i]
-
-        # Magnitude of this source at this wavelength
-        mag = magnitudes[i]
-
-        # Get the PSF for this location, wavelength, etc.
-        if psfs is not None:
-            psf = psfs[i]
-            psf_info = None
-        else:
-
-            # Get PSF
-            psf, psf_info = get_iris_imager_psf(
-                filter_data["wavecenter"], x, y,
-                zenith=zenith, itime=itime, atm=atm, simdir=simdir
-            )
-
-            print(f"Source Location: x={x}, y={y} pix. Using PSF:\n{psf_info}")
-
-            # Bin PSF
-            bin_factor = scale / psf_info['psf_sampling']
-            if bin_factor > 1:
-                shape_out = (int(np.round(psf.shape[0] / bin_factor)), int(np.round(psf.shape[1] / bin_factor)))
-                psf = utils.frebin(psf, shape=shape_out)
-                #psf_info['psf_sampling_binned'] = 
-            elif bin_factor < 1:
-                pass
-
-        # Add PSF to list
-        psfs_out.append((psf, psf_info))
-
-        # Shape
-        psf_shape = psf.shape
-
-        # Convert magnitude to flux (integrated over filter bandpass)
-        flux = filter_data["zp"] * 10**(-mag / 2.5) # phot / s / m^2
-        energy_per_photon = h * c / (1E-9 * filter_data["wavecenter"]) # J / photon
-        flux_photons = flux / energy_per_photon # photons / s / m^2
+        # Print
+        print(f"Processing source {i + 1} : X = {xdet[i]}, Y = {ydet[i]}, Flux = {fluxes[i]}")
 
         # Convolve with PSF
-        breakpoint()
-        image_i = convolve_point_source(x, y, flux_photons, psf, size = size)
+        image_i = convolve_point_source(xdet[i], ydet[i], fluxes[i], psfs[i], size=size)
 
         # Inject into image
         image_out += image_i
         
-    return image_out, psfs_out
+    return image_out
+
+
+
+# Positions in detector coordinates
+def make_point_source_ifu_lenselt_cube(
+        xdet : np.ndarray, ydet : np.ndarray, templates : list[tuple[np.ndarray, np.ndarray]],
+        size : tuple[int, int],
+        psfs : list[np.ndarray],
+        cube_out : np.ndarray | None = None,
+    ):
+
+    # Number of sources
+    assert len(xdet) == len(ydet) == len(templates) == len(psfs)
+    n_sources = len(xdet)
+    
+    # Number of wavelengths
+    n_wavelengths = len(templates[0][0])
+
+    # Output image in units phot / s / m^2
+    if cube_out is None:
+        cube_out = np.zeros(shape=(size[0], size[1], len(templates[0][0])))
+
+    # Loop over point sources
+    for i in range(n_sources):
+        for j in range(n_wavelengths):
+
+            # Print
+            print(f"Processing source {i + 1} : X = {xdet[i]}, Y = {ydet[i]}, Wavelength = {templates[i][0][j]} nm")
+
+            # Flux
+            #flux = 
+        
+            flux = 100
+
+            # Convolve with PSF
+            image_ij = convolve_point_source(xdet[i], ydet[i], flux, psfs[i], size=size)
+
+            # Inject into image
+            cube_out[:, :, j] += image_ij
+        
+    return cube_out
+
+
+# # Positions in detector coordinates
+# def make_point_source_ifu_slicer_cube(
+#         xdet : np.ndarray, ydet : np.ndarray, templates : list[np.ndarray],
+#         size : tuple[int, int],
+#         psfs : list[np.ndarray],
+#         cube_out : np.ndarray | None = None,
+#     ):
+#     pass
 
 
 def convolve_point_source(x : float, y : float, flux : np.ndarray, psf : np.ndarray, size : tuple):
@@ -103,3 +101,5 @@ def convolve_point_source(x : float, y : float, flux : np.ndarray, psf : np.ndar
     psf_shifted /= np.sum(psf_shifted)
     image_out = flux * psf_shifted
     return image_out
+
+

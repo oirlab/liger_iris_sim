@@ -1,9 +1,7 @@
-from astropy.io import fits
 import numpy as np
-import re
 import os
-from .utils import frebin
-
+import re
+from astropy.io import fits
 
 def get_iris_imager_psf(
         wavelength : float, x : float = 8.0, y : float = 8.0,
@@ -29,12 +27,6 @@ def get_iris_imager_psf(
     return psf, info
 
 
-def bin_psf(psf : np.ndarray, scale_in : tuple, scale_out : tuple):
-    shape_in = psf.shape
-    shape_out = (int(shape_in[0] * scale_in / scale_out), int(shape_in[1] * scale_in / scale_out))
-    return frebin(psf, shape=shape_out, total=True)
-
-
 def parse_iris_imager_psf_loc(filename : str):
     x, y = filename.split('/')[-1].split('_')[2:4]
     x, y = x[1:], y[1:]
@@ -42,7 +34,9 @@ def parse_iris_imager_psf_loc(filename : str):
     return x, y
 
 
-def read_iris_imager_psf(filename : str, hdunum=None, wavelength=None):
+def read_iris_imager_psf(
+        filename : str, hdunum : int | None = None, wavelength : float | None = None
+    ):
     if hdunum is None:
         hdunum = get_imager_psf_hdu_for_wavelength(filename, wavelength)
     with fits.open(filename) as hdulist:

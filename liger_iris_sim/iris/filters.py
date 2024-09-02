@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def read_iris_filter_info(filename : str):
+def read_filter_info(filename : str):
 
     # Load filter data
     info = np.genfromtxt(filename, dtype=str)
@@ -29,10 +29,10 @@ def read_iris_filter_info(filename : str):
     return filter_data
 
 
-def get_iris_filter_data(filename : str, filt : str):
+def get_filter_data(filename : str, filt : str):
 
     # Read filter data
-    filter_data = read_iris_filter_info(filename)
+    filter_data = read_filter_info(filename)
     filters_lowercase = np.array([f.lower() for f in filter_data['filter']])
 
     # Match
