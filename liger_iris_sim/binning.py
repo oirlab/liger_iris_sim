@@ -107,10 +107,10 @@ def crop_psf(psf : np.ndarray, n_sigma : float = 10, xc : int | None = None, yc 
     xi = int(x_mean - n_sigma * x_std_dev)
     xf = int(x_mean + n_sigma * x_std_dev)
     yi = np.max(yi, 0)
-    yf = np.min(yf, psf.shape[0])
+    yf = np.min(yf, psf.shape[0] - 1)
     xi = np.max(xi, 0)
-    xf = np.min(xf, psf.shape[1])
-    psf_out = psf[yi:yf, xi:xf].copy()
+    xf = np.min(xf, psf.shape[1] - 1)
+    psf_out = psf[yi:yf+1, xi:xf+1].copy()
 
     # Return
     return psf_out
