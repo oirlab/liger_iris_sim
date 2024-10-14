@@ -3,9 +3,9 @@ import os
 import re
 from astropy.io import fits
 
-def get_iris_imager_psf(
-        wavelength : float, x : float = 8.0, y : float = 8.0,
-        zenith : str = '45', itime : float = 300, atm : str = '50',
+def get_imager_psf(
+        wavelength : float, xs : float, ys : float,
+        itime : float = 300, zenith : str = '45', atm : str = '50',
         simdir : str = '/data/group/data/iris/sim/'
     ):
     itimes = np.array([1.4, 300])
@@ -14,34 +14,50 @@ def get_iris_imager_psf(
     if itime == int(itime):
         itime = int(itime)
     zenith = int(zenith)
-    xs = np.array([0.6, 4.7, 8.8, 12.9, 17])
-    ys = np.array([0.6, 4.7, 8.8, 12.9, 17])
-    x = xs[np.argmin(np.abs(xs - x))]
-    y = xs[np.argmin(np.abs(ys - y))]
-    if x == int(x):
-        x = int(x)
-    if y == int(y):
-        y = int(y)
-    filename = simdir + f"psfs/za{zenith}_{int(atm)}p_im_{itime}s{os.sep}evlpsfcl_1_x{x}_y{y}_2mas.fits"
-    psf, info = read_iris_imager_psf(filename, wavelength=wavelength)
+    xs_ao = np.array([0.6, 4.7, 8.8, 12.9, 17])
+    ys_ao = np.array([0.6, 4.7, 8.8, 12.9, 17])
+    xs = xs_ao[np.argmin(np.abs(xs_ao - xs))]
+    ys = xs_ao[np.argmin(np.abs(ys_ao - ys))]
+    if xs == int(xs):
+        xs = int(xs)
+    if ys == int(ys):
+        ys = int(ys)
+    filename = simdir + f"psfs/za{zenith}_{int(atm)}p_im_{itime}s{os.sep}evlpsfcl_1_x{xs}_y{ys}_2mas.fits"
+    psf, info = read_imager_psf(filename, wavelength=wavelength)
     return psf, info
 
 
-def parse_iris_imager_psf_loc(filename : str):
+def get_ifu_psf(
+        wavelength : float,
+        itime : float = 300, zenith : str = '45', atm : str = '50',
+        simdir : str = '/data/group/data/iris/sim/'
+    ):
+    itimes = np.array([1.4, 300])
+    k = np.argmin(np.abs(itimes - itime))
+    itime = itimes[k]
+    if itime == int(itime):
+        itime = int(itime)
+    zenith = int(zenith)
+    filename = simdir + f"psfs/za{zenith}_{int(atm)}p_ifu_{itime}s{os.sep}evlpsfcl_1_x0_y0_2mas.fits"
+    psf, info = read_imager_psf(filename, wavelength=wavelength)
+    return psf, info
+
+
+def parse_imager_psf_loc(filename : str):
     x, y = filename.split('/')[-1].split('_')[2:4]
     x, y = x[1:], y[1:]
     x, y = float(x), float(y)
     return x, y
 
 
-def read_iris_imager_psf(
+def read_imager_psf(
         filename : str, hdunum : int | None = None, wavelength : float | None = None
     ):
     if hdunum is None:
         hdunum = get_imager_psf_hdu_for_wavelength(filename, wavelength)
     with fits.open(filename) as hdulist:
         psf = hdulist[hdunum].data
-        info = parse_iris_psf_header(hdulist[hdunum].header)
+        info = parse_psf_header(hdulist[hdunum].header)
         info['filename'] = filename
         info['hdunum'] = hdunum
         info['atm'] = filename.split('/')[-2][2:4]
@@ -55,13 +71,13 @@ def get_imager_psf_hdu_for_wavelength(filename : str, wavelength : float):
         waves = np.full(len(hdulist), np.nan)
         for i in range(len(hdulist)):
             header = hdulist[i].header
-            info = parse_iris_psf_header(header)
+            info = parse_psf_header(header)
             waves[i] = info['wavelength']
         hdunum = np.argmin(np.abs(waves - wavelength))
     return hdunum
 
 
-def parse_iris_psf_header(header : fits.Header):
+def parse_psf_header(header : fits.Header):
 
     # Split into a list
     comments = ""
@@ -86,11 +102,11 @@ def parse_iris_psf_header(header : fits.Header):
 
     # wavelength
     match = re.search(r'Wavelength:\s*([\d.eE+-]+)m', comments[2])
-    info['wavelength'] = 1E9 * float(match[1]) # convert meters to nm
+    info['wavelength'] = 1E6 * float(match[1]) # convert meters to microns
 
     # OPD sampling
     match = re.search(r'OPD Sampling:\s*([\d.]+)m', comments[3])
-    info['opd_sampling'] = 1E9 * float(match[1]) # convert meters to nm
+    info['opd_sampling'] = 1E6 * float(match[1]) # convert meters to microns
 
     # fft grid
     match = re.search(r'FFT Grid:\s*(\d+)x(\d+)', comments[4])

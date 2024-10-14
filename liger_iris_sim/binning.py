@@ -60,9 +60,9 @@ def frebin(array, new_shape, total=True):
         frac1 = rstart - istart
         frac2 = 1.0 - (rstop - istop)
         if istart == istop:
-            result[i,:] = (1 - frac1 - frac2) * temp[istart, :]
+            result[i, :] = (1 - frac1 - frac2) * temp[istart, :]
         else:
-            result[i,:] = np.sum(temp[istart:istop+1, :], axis=0) - frac1 * temp[istart, :] - frac2 * temp[istop, :]
+            result[i, :] = np.sum(temp[istart:istop+1, :], axis=0) - frac1 * temp[istart, :] - frac2 * temp[istop, :]
 
     if total:
         return np.transpose(result)
@@ -73,43 +73,40 @@ def frebin(array, new_shape, total=True):
 def bin_psf(psf : np.ndarray, scale_in : tuple, scale_out : tuple):
     shape_in = psf.shape
     shape_out = (int(shape_in[0] * scale_in / scale_out), int(shape_in[1] * scale_in / scale_out))
-    return frebin(psf, shape=shape_out, total=True)
+    return frebin(psf, new_shape=shape_out, total=True)
 
 
-def crop_psf(psf : np.ndarray, n_sigma : float = 10, xc : int | None = None, yc : int | None = None):
-
-    # Generate grid of x and y coordinates
-    y_indices, x_indices = np.indices(psf.shape)
-
-    # Compute the weighted means (centroid) for x and y
-    norm = np.sum(psf)
+def crop_AO_psf(
+        psf : np.ndarray,
+        scale : float, wavelength : float, colldiam : float, n : int | None = None,
+        xc : int | None = None, yc : int | None = None,
+    ):
     
     # Compute or use provided centroid
     if xc is not None and yc is not None:
         x_mean = xc
         y_mean = yc
     else:
-        x_mean = np.sum(x_indices * psf) / norm
-        y_mean = np.sum(y_indices * psf) / norm
+        y_mean = (psf.shape[0] - 1) / 2
+        x_mean = (psf.shape[1] - 1) / 2
 
+    # lambda / D per pixel
+    s = 206265 * wavelength / (colldiam * 1E9) / scale
 
-    # Compute the second moments
-    x_second_moment = np.sum(((x_indices - x_mean) ** 2) * psf) / norm
-    y_second_moment = np.sum(((y_indices - y_mean) ** 2) * psf) / norm
-
-    # Compute the standard deviations
-    x_std_dev = np.sqrt(x_second_moment)
-    y_std_dev = np.sqrt(y_second_moment)
+    # Default number of lambda / D's?
+    if n is None:
+        #n = int(scale * )
+        n = 100
 
     # Compute the crop size
-    yi = int(y_mean - n_sigma * y_std_dev)
-    yf = int(y_mean + n_sigma * y_std_dev)
-    xi = int(x_mean - n_sigma * x_std_dev)
-    xf = int(x_mean + n_sigma * x_std_dev)
-    yi = np.max(yi, 0)
-    yf = np.min(yf, psf.shape[0] - 1)
-    xi = np.max(xi, 0)
-    xf = np.min(xf, psf.shape[1] - 1)
+    yi = int(y_mean - n * s)
+    yf = int(y_mean + n * s)
+    xi = int(x_mean - n * s)
+    xf = int(x_mean + n * s)
+    yi = np.maximum(yi, 0)
+    yf = np.minimum(yf, psf.shape[0] - 1)
+    xi = np.maximum(xi, 0)
+    xf = np.minimum(xf, psf.shape[1] - 1)
     psf_out = psf[yi:yf+1, xi:xf+1].copy()
 
     # Return

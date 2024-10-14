@@ -19,11 +19,11 @@ def read_filter_info(filename : str):
         if filter_data[key][0][0].isdigit():
             filter_data[key] = filter_data[key].astype(float)
 
-    # Convert wavelengths to microns
-    filter_data['wavemin'] /= 1E4
-    filter_data['wavecenter'] /= 1E4
-    filter_data['wavemax'] /= 1E4
-    filter_data['bandwidth'] /= 1E4
+    # Convert wavelengths to nm
+    filter_data['wavemin'] /= 10
+    filter_data['wavecenter'] /= 10
+    filter_data['wavemax'] /= 10
+    filter_data['bandwidth'] /= 10
 
     # Return
     return filter_data

@@ -1,6 +1,9 @@
 from .binning import *
-from .coords import *
-from expose import *
+from .spec_utils import *
 
-from sources.imager import make_point_sources_imager
-from sources.lenslet import make_point_sources_ifu_lenslet_cube
+from .expose.imager import expose_imager
+from .expose.ifu import expose_ifu
+from .sources.imager import make_point_sources_imager
+from .sources.ifu import make_point_sources_ifu_cube
+
+from .sky import get_maunakea_sky_background

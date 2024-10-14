@@ -1,76 +1,83 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.interpolate as interp
-import scipy.constants
-c = scipy.constants.c # m/s
-h = scipy.constants.h # J s
-
-from . import utils
-from .filters import get_iris_filter_data
-
-# SNR
-# SNR equation:
-# S/N = S*sqrt(T)/sqrt(S + npix(B + D + R^2/t))
-# t = itime per frame
-# T = sqrt(Nframes*itime)
-# S, B, D -> electrons per second
-# R -> read noise (electrons)
 
 def expose_imager(
         source_image : np.ndarray,
-        itime : float, scale : float = 0.004, n_frames : int = 1,
-        collarea : float = 630, sky_background_rate_m2 : float = 0, efftot : float | None = None,
-        gain : float = 3.04, read_noise : float = 5, dark_current : float = 0.002
-    ):
+        itime : float, n_frames : int,
+        collarea : float, sky_background_rate : float, efftot : float,
+        gain : float, read_noise : float, dark_current : float
+    ) -> dict:
+    """
+    Parameters:
+    source_image (np.ndarray): The source image with the correct shape as the final image, in units of photons / sec / m^2.
+    itime (float): The exposure time in seconds.
+    n_frames (float): The total number of frames to coadd, each inducing a read noise.
+    collarea (float): The telescope collimating area in units of m^2.
+    sky_background_rate (float): The sky background rate in units of photons / sec / m^2.
+    efftot (float): The total efficiency of the system (top of atmosphere -> detector).
+    gain (float): The gain in units of e- / ADU.
+    read_noise (float): The read noise in units of e- RMS.
+    dark_current (float): The dark current rate in units of ADU / s
 
-    # Pixel size on sky
-    pixsize = scale**2 # arcsec^2 / spaxial
+    Returns:
+    dict: The exposure components. Keys are:
+        observed (np.ndarray): Combined exposure (e- / s)
+        source (np.ndarray): Source signal (e- / s)
+        background (np.ndarray): Background signal (e- / s)
+        snr (np.ndarray): SNR
+        noise (np.ndarray): Noise (e- / s)
+        read_noise (np.ndarray): Effective read noise (e- / s)
+    """
 
-    # Integrate background over telescope aperture and include efficiency
-    sky_background_rate = sky_background_rate_m2 * collarea * efftot # photons / second
+    # Integrate over telescope aperture (photons / sec)
+    source_rate = source_image * collarea
+    sky_background_rate = sky_background_rate * collarea
 
-    # Distribute over spaxial
-    sky_background_rate *= pixsize # photons arcsec^2 / second / spaxial
+    # Efficiency (effectively converts to e- / s)
+    source_rate *= efftot
+    sky_background_rate *= efftot
 
-    # Integrate source image over telescope aperture and include efficiency
-    source_rate = source_image * collarea * efftot # photons / second
+    # Dark rate (e- / s)
+    dark_rate = dark_current * gain
 
-    # Integrate source over itime
-    source_total = source_rate * itime
-    
-    # Combine source + sky background
-    source_sky_rate = source_rate + sky_background_rate
-
-    # Dark current rate
-    dark_rate = dark_current
-
-    # Combine sky background + dark current
+    # Total background rate (e- / s)
     background_rate = sky_background_rate + dark_rate
-    
-    # Observed image integrated over itime
-    observed_total_per_frame = itime * (source_rate + background_rate)
 
-    # Observed noise per frame
-    observed_noise_per_frame = np.sqrt(observed_total_per_frame + read_noise**2)
+    # Integrate source and background over itime and frames (e-)
+    source_tot = source_rate * itime * n_frames
+    background_tot = background_rate * itime * n_frames
 
-    # Total snr where s is source, noise is everything else
-    observed_snr_per_frame = source_rate * itime / observed_noise_per_frame
+    # Final simulated image over all frames (e-)
+    sim_tot = source_tot + background_tot
 
-    # Now add Poisson noise to the total observed image
-    observed_total_per_frame_with_noise = np.random.poisson(
-        lam=observed_total_per_frame,
-        size=observed_total_per_frame.shape
-    ).astype("float64")
+    # Add poisson noise to final image (e-)
+    sim_tot_noisy = np.random.poisson(lam=sim_tot, size=source_image.shape)
+
+    # Total read noise noise contribution over all frames (e-)
+    read_noise_tot = np.random.normal(loc=0, scale=read_noise * np.sqrt(n_frames), size=source_image.shape)
+
+    # Add read noise to final image
+    sim_tot_noisy = sim_tot_noisy + read_noise_tot
+
+    # Simulated noise
+    noise_tot = np.sqrt(sim_tot + (read_noise * np.sqrt(n_frames))**2)
+
+    # SNR
+    snr = source_tot / noise_tot
+
+    # Convert back to e-/s
+    sim_tot_noisy /= (n_frames * itime)
+    source_tot /= (n_frames * itime)
+    background_tot /= (n_frames * itime)
+    noise_tot /= (n_frames * itime)
 
     # Outputs
-    out = {
-        "source_sky_rate" : source_sky_rate,
-        "dark_rate" : dark_rate,
-        "observed_total_per_frame" : observed_total_per_frame,
-        "observed_total_per_frame_with_noise" : observed_total_per_frame_with_noise,
-        "observed_snr_per_frame" : observed_snr_per_frame,
-        "observed_noise_per_frame" : observed_noise_per_frame
-    }
+    out = dict(
+        observed=sim_tot_noisy,
+        source=source_tot, background=background_tot,
+        snr=snr, noise=noise_tot,
+        read_noise=read_noise_tot,
+    )
       
     # Return
     return out
