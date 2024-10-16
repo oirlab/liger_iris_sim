@@ -20,7 +20,7 @@ def expose_ifu(
     """
     Parameters:
     source_cube (np.ndarray): Source cube (y, x, wave). Each wave bin in units of photons / sec / m^2 / micron.
-    itime (np.ndarray): Integration time (sec).
+    itime (float): Integration time (sec).
     collarea (np.ndarray): Collimating area (m^2)
     sky_background (np.ndarray): The sky background spectrum sampled on the same
         wave bins as source_cube. Each bin in sky_background in units of photons / sec / m^2 / micron.
@@ -64,7 +64,7 @@ def expose_ifu(
     # Add poisson noise to final image (e-)
     sim_tot_noisy = np.random.poisson(lam=sim_tot, size=source_cube.shape)
 
-    # Add read noise to final image
+    # Add read noise to final image (broadcast to each wavelength slice)
     sim_tot_noisy = sim_tot_noisy + read_noise_tot[:, :, None]
 
     # Simulated noise

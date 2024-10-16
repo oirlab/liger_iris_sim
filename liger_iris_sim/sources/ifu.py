@@ -18,7 +18,7 @@ def make_point_sources_ifu_cube(
     psfs (list[np.ndarray])
 
     Returns:
-    np.ndarray: The image cube in photons / sec / m^2 for each wavelength bin.
+    np.ndarray: The image cube in photons / sec / m^2 for each wavelength*spaxel bin.
     """
 
     # Number of sources

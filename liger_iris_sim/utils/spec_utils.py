@@ -14,13 +14,13 @@ def resample_spectrum(
     """
     Parameters:
     wavelengths (np.ndarray): The wavelength grid in microns.
-    spectrum (np.ndarray): The spectrum in arbitrary units
+    spectrum (np.ndarray): The spectrum in arbitrary units.
     wavelengths_out (np.ndarray): The output wavelength grid to sample on.
     phot_flambda (float | None): The photon flux density in photons / sec / micron / m^2.
     phot_fint (float | None): The integrated photon flux in photons / sec / m^2.
     
     Returns:
-    wavelengths_out (np.ndarray): The now sampled wavelength grid in microns.
+    wavelengths_out (np.ndarray): The resampled wavelength grid in microns.
     spectrum_out (np.ndarray): The spectrum sampled on wavelengths_out in photons / sec / microns / m^2.
     """
 
@@ -30,16 +30,25 @@ def resample_spectrum(
 
     # Interpolate onto new grid
     if wavelengths_out is not None:
-        itp = scipy.interpolate.CubicSpline(wavelengths, spectrum)
-        spectrum_out = np.zeros(wavelengths_out.shape)
-        dws = np.diff(wavelengths_out)
-        dws = np.append(np.diff(wavelengths_out), dws[-1])
-        for i in range(len(wavelengths_out)):
-            a = wavelengths_out[i] - dws[i] / 2
-            b = wavelengths_out[i] + dws[i] / 2
-            val = itp.integrate(a, b, extrapolate=False)
-            if np.isfinite(val):
-                spectrum_out[i] = val
+        # itp = scipy.interpolate.CubicSpline(wavelengths, np.log(spectrum))
+        # spectrum_out = np.zeros(wavelengths_out.shape)
+        # dws = np.diff(wavelengths_out)
+        # dws = np.append(np.diff(wavelengths_out), dws[-1])
+        # for i in range(len(wavelengths_out)):
+        #     a = wavelengths_out[i] - dws[i] / 2
+        #     b = wavelengths_out[i] + dws[i] / 2
+        #     val = itp.integrate(a, b, extrapolate=False)
+        #     val = np.exp(val)
+        #     if np.isfinite(val) and val > 0:
+        #         spectrum_out[i] = val
+        spectrum_out = FluxConservingResampler()(
+            Spectrum1D(
+                flux=spectrum * units.ph / (units.s * units.micron * units.m**2),
+                spectral_axis=wavelengths * units.micron
+            ),
+            wavelengths_out * units.micron
+        ).data
+
     else:
         spectrum_out = spectrum.copy()
 

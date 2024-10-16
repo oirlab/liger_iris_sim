@@ -2,24 +2,27 @@ import numpy as np
 from astropy.io import fits
 import scipy.interpolate as interpolate
 import scipy.constants
-from astropy.modeling.models import Gaussian1D
+from astropy.modeling.models import Gaussian1D, Lorentz1D
+import warnings
 
 c = scipy.constants.c  # m/s
 h = scipy.constants.h  # J s
 k = scipy.constants.k # J / K
 
 
-def get_maunakea_sky_background(
-        wavelengths : np.ndarray, ohsim : bool = True,
+def get_maunakea_spectral_sky_background(
+        wavelengths : np.ndarray, resolution : float, ohsim : bool = True,
         gemini_file : str | None = None,
         ohlines_file : str | None = None,
         T_tel : float = 275, T_atm : float = 258, T_aos : float = 243, T_zod : float = 5800,
         backmag : float = 22.0, imagmag : float = 20.0, zp : float = 25.0, zpphot : float = 25.0,
         Em_tel : float = 0.09, Em_atm : float = 0.2, Em_aos : float = 0.01, Em_zod : float = 1.47E-12,
     ):
-    
-    # rad^2 / arcsecond^2
-    sterrad = 2.3504461459599998E-11
+    """
+    Parameters:
+    wavelengths (np.ndarray): blah.
+    resolution (float): The spectral resolution (taken to be constant across bandpass here).
+    """
 
     # Generate arrays
     bbtel = np.zeros(wavelengths.size)  # telescope blackbody spectrum
@@ -28,6 +31,8 @@ def get_maunakea_sky_background(
     bbzod = np.zeros(wavelengths.size)  # Zodiacal light blackbody spectrum
     bbspec = np.zeros(wavelengths.size)  # Total blackbody spectrum
 
+    sterr2 = (1 / 206265**2)
+
     # Loop over the first and last pixel of the complete spectrum
     for i in range(wavelengths.size):
 
@@ -35,9 +40,7 @@ def get_maunakea_sky_background(
         wave = wavelengths[i]
         wavem = wave * 1E-6
       
-        # Thermal Blackbodies (Tel, AO system, atmosphere) in
-        # W / (micron * m^2 * rad^2)
-        # = J / (s * m * m^2 * rad^2)
+        # Thermal Blackbodies in units J / (s * m * m^2 * rad^2)
         s1 = 2 * h * c**2 / wavem**5
         s2 = h * c / (wavem * k)
         bbtel[i] = s1 / (np.exp(s2 / T_tel) - 1)
@@ -45,32 +48,32 @@ def get_maunakea_sky_background(
         bbatm[i] = s1 / (np.exp(s2 / T_atm) - 1)
         bbzod[i] = s1 / (np.exp(s2 / T_zod) - 1)
         
-        # Convert to photons / (s * m^2 * micron * rad^2) for Vega conversion below
+        # Convert to photons / (s * micron * m^2 * rad^2) for Vega conversion below
         # Ephot = hc/lambda
         Ephot = h * c / wavem # J / photon
-        bbtel[i] /= Ephot
+        bbtel[i] /= Ephot # photons / (s * m * m^2 * rad^2)
         bbaos[i] /= Ephot
         bbatm[i] /= Ephot
         bbzod[i] /= Ephot
-        bbtel[i] /= 1E6
+        bbtel[i] /= 1E6 # photons / (s * micron * m^2 * rad^2)
         bbaos[i] /= 1E6
         bbatm[i] /= 1E6
         bbzod[i] /= 1E6
-        # bbtel[i] /= 1E-9
-        # bbaos[i] /= 1E-9
-        # bbatm[i] /= 1E-9
-        # bbzod[i] /= 1E-9
+        bbtel[i] *= sterr2 # photons / (s * micron * m^2 * arcsec^2)
+        bbaos[i] *= sterr2
+        bbatm[i] *= sterr2
+        bbzod[i] *= sterr2
 
         # Total BB together with emissivities from each component
         # in units photons / (s * m^2 * micron * arcsecond)
         # Only use the BB for the AO system and the telescope since 
         # the Gemini observations already includes the atmosphere
-        bbspec[i] = sterrad * (bbtel[i] * Em_tel + bbaos[i] * Em_aos)
-
+        bbspec[i] = bbtel[i] * Em_tel \
+                  + bbaos[i] * Em_aos
 
     # OH lines
     if ohsim:
-        ohspec = sim_ohlines(wavelengths, n_lines=30_000, background=1E-8, ohlines_file=ohlines_file)
+        ohspec = sim_ohlines(wavelengths, ohlines_file=ohlines_file, resolution=resolution)
     else:
 
         # Load Gemini file
@@ -95,10 +98,14 @@ def get_maunakea_sky_background(
         
         # Interpolate onto our wavelengths grid
         ohspec = np.interp(wavelengths, gemini_wave, gemini_spec)
+
+
+    # Combined background
+    background = bbspec + ohspec
     
     # Results
     out = dict(
-        wavelengths=wavelengths,
+        wavelengths=wavelengths, background=background,
         bbtel=bbtel, bbaos=bbaos, bbatm=bbatm, bbzod=bbzod, bbspec=bbspec,
         ohspec=ohspec
     )
@@ -108,12 +115,11 @@ def get_maunakea_sky_background(
 
 def sim_ohlines(
         wavelengths : np.ndarray,
-        n_lines : int = 30_000,
-        background : float | None = 1E-8,
-        ohlines_file : str | None = None
+        resolution : float,
+        ohlines_file : str,
     ):
 
-    # OH spectrum
+    # OH spectrum in units of photons / (m^2 * s * micron * arcsec^2)
     ohspec = np.zeros(len(wavelengths))
 
     # read OH line file
@@ -123,14 +129,15 @@ def sim_ohlines(
     n_good = len(good)
 
     # Build spectrum
-    breakpoint()
     if n_good > 0:
         line_centers, line_strengths = line_centers[good], line_strengths[good]
         for i in range(n_good):
-           ohspec += sim_ohlines_lorenztian(
-               wavelengths, line_centers[i], n_lines, background,
-               strength=line_strengths[i]
+            ohspec += sim_ohlines_lorenztian(
+                wavelengths, wavecenter=line_centers[i],
+                flux=line_strengths[i], resolution=resolution
             )
+    else:
+        warnings.warn("No OH lines found")
 
     # Return
     return ohspec
@@ -138,12 +145,13 @@ def sim_ohlines(
 
 def sim_ohlines_lorenztian(
         wavelengths : np.ndarray, wavecenter : float,
-        n_lines : int, background : np.ndarray,
-        strength : float
+        flux : float, resolution : float,
     ):
-    # Strengths are units of 
-    # photons / (m^2 * s * arcsec^2)
-    omega = wavecenter / (n_lines * np.pi * np.sqrt(2))
-    spec = omega**2 / ((wavelengths - wavecenter)**2 + omega**2) + background
-    spec *= strength / (omega * np.pi)
+    # flux units: photons / (m^2 * s * arcsec^2)
+    fwhm = wavecenter / resolution
+    gamma = fwhm / 2
+    dl = np.median(np.diff(wavelengths))
+    spec = Lorentz1D(amplitude=1, x_0=wavecenter, fwhm=fwhm)(wavelengths)
+    spec /= gamma * np.pi
+    spec *= dl * flux
     return spec
