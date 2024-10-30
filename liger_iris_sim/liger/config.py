@@ -10,18 +10,25 @@ imager_plate_scale = 0.01
 
 # Dark current of IRIS HRG imager
 imager_dark_current = 0.05 # e- / s
+ifu_dark_current = 0.05 # e- / s
 
 # Read noise
 imager_read_noise = 7 # e-
+ifu_read_noise = 7 # e-
 
 # Keck coll area
 keck_collarea = 76 # m^2
 
+# Keck coll diam
+keck_colldiam = 10
+
 # Gain
 imager_gain = 3.04 # e- / ADU
+ifu_gain = 3.04 # e- / ADU
 
 # Efficiency
 imager_efftot = 0.25
+ifu_efftot = 0.25
 
 # BB filters
 bb_filters = ['Zbb', 'Ybb', 'Jbb', 'Hbb', 'Kbb']

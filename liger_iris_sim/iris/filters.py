@@ -29,22 +29,33 @@ def read_filter_info(filename : str):
     return filter_data
 
 
-def get_filter_data(filename : str, filt : str):
+def get_filter_data(filename : str, filt : str | None = None, bb : bool | None = False):
+    """
+    Gets the IRIS filters
+    
+    Parameters:
+    filename (str): The filename containing the info for all filters.
+    """
 
     # Read filter data
-    filter_data = read_filter_info(filename)
-    filters_lowercase = np.array([f.lower() for f in filter_data['filter']])
+    filter_data_raw = read_filter_info(filename)
 
-    # Match
-    index = np.where(filt.lower().strip() == filters_lowercase)[0][0]
-    
-    # Get this row
-    filter_data = dict(
-        zip(
-            filter_data.keys(),
-            [filter_data[key][index] for key in filter_data]
+    # Transpose so that filter names are the keys
+    filter_data = {}
+    for i, f in enumerate(filter_data_raw['filter']):
+        filter_data[f] = dict(
+            zip(
+                filter_data_raw.keys(),
+                [filter_data_raw[key][i] for key in filter_data_raw]
+            )
         )
-    )
 
-    # Return
-    return filter_data
+    # What filters to return
+    if filt is not None:
+        return filter_data[filt]
+    elif bb:
+        return {
+            key : filter_data[key] for key in filter_data.keys() if key.lower().endswith('bb')
+        }
+    else:
+        return filter_data

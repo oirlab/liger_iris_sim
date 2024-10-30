@@ -33,9 +33,6 @@ def ifu_to_spatial(
     ys = scale * xd + ys0
     return xs, ys
 
-
-
-
 def generate_filename(
         obsid : str ,
         detector : str, obstype : str, level : int | str = 0,
@@ -49,7 +46,7 @@ def generate_filename(
         subarray = '-' + str(subarray).zfill(2)
     else:
         subarray = ''
-    return f"{dir}{obsid}-IRIS-{detector.upper()}-{obstype.upper()}{int(level)}-{exp}{subarray}.fits"
+    return f"{dir}{obsid}-IRIS-{detector.upper()}-{obstype}{int(level)}-{exp}{subarray}.fits"
 
 
 DEFAULT_HEADER = fits.Header()

@@ -6,7 +6,7 @@ from astropy.io import fits
 def get_imager_psf(
         wavelength : float, xs : float, ys : float,
         itime : float = 300, zenith : str = '45', atm : str = '50',
-        simdir : str = '/data/group/data/iris/sim/'
+        psfdir : str = '/data/group/data/iris/sim/psfs/'
     ):
     itimes = np.array([1.4, 300])
     k = np.argmin(np.abs(itimes - itime))
@@ -22,7 +22,7 @@ def get_imager_psf(
         xs = int(xs)
     if ys == int(ys):
         ys = int(ys)
-    filename = simdir + f"psfs/za{zenith}_{int(atm)}p_im_{itime}s{os.sep}evlpsfcl_1_x{xs}_y{ys}_2mas.fits"
+    filename = psfdir + f"za{zenith}_{int(atm)}p_im_{itime}s{os.sep}evlpsfcl_1_x{xs}_y{ys}_2mas.fits"
     psf, info = read_imager_psf(filename, wavelength=wavelength)
     return psf, info
 
@@ -30,7 +30,7 @@ def get_imager_psf(
 def get_ifu_psf(
         wavelength : float,
         itime : float = 300, zenith : str = '45', atm : str = '50',
-        simdir : str = '/data/group/data/iris/sim/'
+        psfdir : str = '/data/group/data/iris/sim/psfs/'
     ):
     itimes = np.array([1.4, 300])
     k = np.argmin(np.abs(itimes - itime))
@@ -38,10 +38,9 @@ def get_ifu_psf(
     if itime == int(itime):
         itime = int(itime)
     zenith = int(zenith)
-    filename = simdir + f"psfs/za{zenith}_{int(atm)}p_ifu_{itime}s{os.sep}evlpsfcl_1_x0_y0_2mas.fits"
-    psf, info = read_imager_psf(filename, wavelength=wavelength)
+    filename = psfdir + f"za{zenith}_{int(atm)}p_ifu_{itime}s{os.sep}evlpsfcl_1_x0_y0_2mas.fits"
+    psf, info = read_ifu_psf(filename, wavelength=wavelength)
     return psf, info
-
 
 def parse_imager_psf_loc(filename : str):
     x, y = filename.split('/')[-1].split('_')[2:4]
@@ -66,7 +65,33 @@ def read_imager_psf(
     return psf, info
 
 
+def read_ifu_psf(
+        filename : str, hdunum : int | None = None, wavelength : float | None = None
+    ):
+    if hdunum is None:
+        hdunum = get_ifu_psf_hdu_for_wavelength(filename, wavelength)
+    with fits.open(filename) as hdulist:
+        psf = hdulist[hdunum].data
+        info = parse_psf_header(hdulist[hdunum].header)
+        info['filename'] = filename
+        info['hdunum'] = hdunum
+        info['atm'] = filename.split('/')[-2][2:4]
+        info['weather'] = filename.split('/')[-2][5:7]
+        info['detector'] = 'IMG1'
+    return psf, info
+
+
 def get_imager_psf_hdu_for_wavelength(filename : str, wavelength : float):
+    with fits.open(filename) as hdulist:
+        waves = np.full(len(hdulist), np.nan)
+        for i in range(len(hdulist)):
+            header = hdulist[i].header
+            info = parse_psf_header(header)
+            waves[i] = info['wavelength']
+        hdunum = np.argmin(np.abs(waves - wavelength))
+    return hdunum
+
+def get_ifu_psf_hdu_for_wavelength(filename : str, wavelength : float):
     with fits.open(filename) as hdulist:
         waves = np.full(len(hdulist), np.nan)
         for i in range(len(hdulist)):

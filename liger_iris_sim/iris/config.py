@@ -11,11 +11,13 @@ ifu_slicer_plate_scales = [0.025, 0.05]
 # Bottom left corner of detector in spatial coords
 imager_offset_coords = (0.6, 0.6)
 
-# Dark current of IRIS HRG imager
+# Dark current
 imager_dark_current = 0.002 # e- / s
+ifu_dark_current = 0.002 # e- / s
 
 # Read noise
 imager_read_noise = 5 # e-
+ifu_read_noise = 5 # e-
 
 # TMT coll area
 tmt_collarea = 630 # m^2
@@ -25,6 +27,7 @@ tmt_colldiam = 30 # m
 
 # Gain
 imager_gain = 3.04 # e- / ADU
+ifu_gain = 3.04 # e- / ADU
 
 # BB filters
 bb_filters = ['Zbb', 'Ybb', 'Jbb', 'Hbb', 'Kbb']

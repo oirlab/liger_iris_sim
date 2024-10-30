@@ -70,44 +70,57 @@ def frebin(array, new_shape, total=True):
         return np.transpose(result) / (xbox * ybox)
     
 
-def bin_psf(psf : np.ndarray, scale_in : tuple, scale_out : tuple):
-    shape_in = psf.shape
+def bin_image(image : np.ndarray, scale_in : tuple, scale_out : tuple):
+    shape_in = image.shape
     shape_out = (int(shape_in[0] * scale_in / scale_out), int(shape_in[1] * scale_in / scale_out))
-    return frebin(psf, new_shape=shape_out, total=True)
+    return frebin(image, new_shape=shape_out, total=True)
 
 
 def crop_AO_psf(
         psf : np.ndarray,
         scale : float, wavelength : float, colldiam : float, n : int | None = None,
-        xc : int | None = None, yc : int | None = None,
+        center : tuple[float, float] | None = None
     ):
+    """
+    Parameters:
+    psf (np.ndarray): The PSF to resample.
+    scale (float): The size of a PSF pixel in arcsec.
+    colldiam (float): The effective collimating diameter
+    n (float): The number of lambda / D's to crop by.
+    center (float): The center of the PSF (y, x)
+
+    Returns:
+    np.ndarray: The new PSF.
+    tuple[float, float]: The center of the new psf
+    """
     
-    # Compute or use provided centroid
-    if xc is not None and yc is not None:
-        x_mean = xc
-        y_mean = yc
-    else:
-        y_mean = (psf.shape[0] - 1) / 2
-        x_mean = (psf.shape[1] - 1) / 2
+    # "Center" of PSF
+    if center is None:
+        center = ((psf.shape[0] - 1) / 2, (psf.shape[1] - 1) / 2)
 
     # lambda / D per pixel
-    s = 206265 * wavelength / (colldiam * 1E9) / scale
+    s = 206265 * wavelength / (colldiam * 1E6) / scale
 
     # Default number of lambda / D's?
     if n is None:
-        #n = int(scale * )
         n = 100
 
     # Compute the crop size
-    yi = int(y_mean - n * s)
-    yf = int(y_mean + n * s)
-    xi = int(x_mean - n * s)
-    xf = int(x_mean + n * s)
+    # Initial bounds
+    w = int(n * s / np.sqrt(2))
+    yi = int(center[0] - w)
+    yf = int(center[0] + w)
+    xi = int(center[1] - w)
+    xf = int(center[1] + w)
+
+    # Check bounds
     yi = np.maximum(yi, 0)
     yf = np.minimum(yf, psf.shape[0] - 1)
     xi = np.maximum(xi, 0)
     xf = np.minimum(xf, psf.shape[1] - 1)
+
+    # Slice PSF
     psf_out = psf[yi:yf+1, xi:xf+1].copy()
 
     # Return
-    return psf_out
+    return center, psf_out
