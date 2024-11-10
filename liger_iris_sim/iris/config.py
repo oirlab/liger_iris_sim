@@ -16,8 +16,8 @@ imager_dark_current = 0.002 # e- / s
 ifu_dark_current = 0.002 # e- / s
 
 # Read noise
-imager_read_noise = 5 # e-
-ifu_read_noise = 5 # e-
+imager_read_noise = 5 # e- RMS
+ifu_read_noise = 5 # e- RMS
 
 # TMT coll area
 tmt_collarea = 630 # m^2
