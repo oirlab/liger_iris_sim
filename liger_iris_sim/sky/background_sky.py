@@ -3,14 +3,30 @@ from astropy.io import fits
 import scipy.interpolate as interpolate
 import scipy.constants
 from astropy.modeling.models import Gaussian1D, Lorentz1D
+from ..utils import convolve_spectrum
 import warnings
 
 c = scipy.constants.c  # m/s
 h = scipy.constants.h  # J s
 k = scipy.constants.k # J / K
 
+def get_maunakea_spectral_sky_transmission(
+        wavelengths : np.ndarray, tapas_file : str, resolution : float | None,
+        airmass : float = 1,
+    ):
+    dw = np.median(np.diff(wavelengths))
+    tapas_wave, tapas_spec = np.loadtxt(tapas_file, delimiter=',', usecols=(0, 1), unpack=True, comments='#')
+    good = np.where((tapas_wave >= wavelengths[0] - 10*dw) & (tapas_wave <= wavelengths[-1] + 10*dw))[0]
+    tapas_wave, tapas_spec = tapas_wave[good], tapas_spec[good]
+    if resolution is not None:
+        spec = convolve_spectrum(tapas_wave, tapas_spec, resolution=resolution)
+    spec = np.interp(wavelengths, tapas_wave, tapas_spec, left=np.nan, right=np.nan)
+    spec **= airmass
+    return spec
 
-def get_maunakea_spectral_sky_background(
+
+
+def get_maunakea_spectral_sky_emission(
         wavelengths : np.ndarray, resolution : float, ohsim : bool = True,
         gemini_file : str | None = None,
         ohlines_file : str | None = None,
@@ -21,7 +37,7 @@ def get_maunakea_spectral_sky_background(
     Parameters:
     wavelengths (np.ndarray): The wavelength array.
     resolution (float): The spectral resolution (taken to be constant across bandpass here).
-    """ 
+    """
 
     sterr = 1 / 206265**2 # rad^2 / arcsec^2
     dw = np.nanmedian(np.diff(wavelengths))
@@ -57,18 +73,18 @@ def get_maunakea_spectral_sky_background(
                 + bbatm * Em_atm
 
     # OH lines: photons / (s * m^2 * arcsec^2 * wavebin)
-    if ohsim:
-        ohspec = sim_ohlines(wavelengths, ohlines_file=ohlines_file, resolution=resolution)
-    else:
-        ohspec = get_gemini_background(gemini_file, wavelengths)
+    #if ohsim:
+    ohspec = sim_ohlines(wavelengths, ohlines_file=ohlines_file, resolution=resolution)
+    #else:
+        #ohspec = get_gemini_background(gemini_file, wavelengths)
 
-    # Combined background
+    # Combined sky emission
     # photons / (s * m^2 * arcsec^2 * wavebin)
-    background = bbspec + ohspec
+    sky_emission = bbspec + ohspec
     
     # Results
     out = dict(
-        wavelengths=wavelengths, background=background,
+        wavelengths=wavelengths, sky_emission=sky_emission,
         bbtel=bbtel, bbaos=bbaos, bbatm=bbatm, bbzod=bbzod, bbspec=bbspec,
         ohspec=ohspec
     )

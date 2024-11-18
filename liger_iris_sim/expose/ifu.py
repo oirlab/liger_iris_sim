@@ -14,7 +14,8 @@ def expose_ifu(
         wavebins : np.ndarray,
         itime : float, n_frames : int,
         collarea : float,
-        sky_background : np.ndarray,
+        sky_emission : np.ndarray,
+        sky_transmission : np.ndarray,
         efftot : float,
         gain : float, read_noise : float, dark_current : float
     ) -> dict:
@@ -24,8 +25,10 @@ def expose_ifu(
     wavebins (np.ndarray): Wavelength grid (microns).
     itime (float): Integration time (sec).
     collarea (np.ndarray): Collimating area (m^2)
-    sky_background (np.ndarray): The sky background spectrum sampled on wavebins
-        in units of photons / sec / m^2 / wavebin.
+    sky_emission (np.ndarray): The sky background emission spectrum sampled on wavebins
+        in units of photons / sec / m^2 / wavebin. Sky emission is NOT modulated by sky_transmission.
+    sky_transmission (np.ndarray): The sky background transmission for each spectrum
+        normalized to [0, 1] for each wavebin. Only affects the source spectrum.
     efftot (np.ndarray): Total efficiciency (convert photons -> e-)
     gain (float): Detector gain (e-)
     
@@ -39,23 +42,31 @@ def expose_ifu(
         read_noise (np.ndarray): Effective read noise (e- RMS wavebin)
     """
 
+    # Multiply by tellurics (photons / sec / m^2 / wavebin)
+    source_rate = source_cube * sky_transmission
+
     # Integrate over telescope aperture (photons / sec / wavebin)
-    source_rate = source_cube * collarea
-    sky_background_rate = sky_background * collarea
+    source_rate *= collarea
+    sky_emission_rate = sky_emission * collarea
 
     # Efficiency (effectively converts to e- / s / wavebin)
     source_rate *= efftot
-    sky_background_rate *= efftot
+    sky_emission_rate *= efftot
 
-    # Dark rate (e- / s)
+    # Dark rate (e- / s / wavebin)
     dark_rate = dark_current * gain
 
-    # Total background rate (e- / s / wavebin)
-    background_rate = sky_background_rate + dark_rate
+    # Dark tot (e- / wavebin)
+    dark_tot = dark_rate * itime * n_frames
 
-    # Integrate source and background over itime and frames (e- / wavebin)
+    # Sky emission tot (e- / wavebin)
+    sky_emission_tot = sky_emission_rate * itime * n_frames
+
+    # Total background (e- / wavebin)
+    background_tot = sky_emission_tot + dark_tot
+
+    # Source tot (e- / wavebin)
     source_tot = source_rate * itime * n_frames
-    background_tot = background_rate * itime * n_frames
 
     # Total read noise noise contribution over all frames, just make 2D (e-)
     read_noise_tot = np.random.normal(loc=0, scale=read_noise * np.sqrt(n_frames), size=source_cube[:, :, 0].shape)
@@ -68,12 +79,6 @@ def expose_ifu(
 
     # Add poisson noise to final image (e-)
     sim_tot_noisy = np.random.poisson(lam=sim_tot, size=source_cube.shape).astype(float)
-    #source_tot_noisy = np.random.poisson(lam=source_tot, size=source_cube.shape).astype(float)
-    #background_tot_noisy = np.random.poisson(lam=background_tot, size=background_tot.shape).astype(float)
-    #sim_tot_noisy = source_tot_noisy + background_tot_noisy
-    #sim_tot_noisy = sim_tot.copy()
-
-    #sim_tot_noisy = sim_tot + np.random.normal(loc=0, scale=noise_tot)
 
     # Add read noise to final image (broadcast to each wavelength slice)
     sim_tot_noisy = sim_tot_noisy + read_noise_tot[:, :, None]
@@ -81,23 +86,16 @@ def expose_ifu(
     # SNR
     snr = source_tot / noise_tot
 
-    # Convert back to e-/s
-    sim_tot_noisy /= (n_frames * itime)
-    source_tot /= (n_frames * itime)
-    #source_tot_noisy /= (n_frames * itime)
-    background_tot /= (n_frames * itime)
-    #background_tot_noisy /= (n_frames * itime)
-    noise_tot /= (n_frames * itime)
-
-    # Outputs
+    # Outputs in e-
     out = dict(
         observed=sim_tot_noisy,
         source=source_tot,
-        #source_observed=source_tot_noisy,
+        sky_emission=sky_emission_tot,
         background=background_tot,
-        #background_observed=background_tot_noisy,
+        sky_transmission=sky_transmission,
         snr=snr, noise=noise_tot,
         read_noise=read_noise_tot,
+        dark=dark_tot,
     )
       
     # Return

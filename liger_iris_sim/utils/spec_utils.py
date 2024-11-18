@@ -26,7 +26,7 @@ def convolve_spectrum(
     wavelengths (np.ndarray): The wavelength grid.
     spectrum (np.ndarray): The spectrum grid.
     resolution (float): The desired resolution, R = lambda / fwhm.
-    n_res (float): The number of resolution elements (fwhm) to include in the LSF on each side, defaults to 4.
+    n_res (float): The number of resolution elements (fwhm) to include in the LSF on each side, defaults to 8.
     """
     fwhm = np.mean(wavelengths) / resolution
     stddev = fwhm / (2 * np.sqrt(2 * np.log(2)))

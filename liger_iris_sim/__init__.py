@@ -5,4 +5,4 @@ from .expose.ifu import expose_ifu
 from .sources.imager import make_point_sources_imager
 from .sources.ifu import make_point_sources_ifu_cube
 
-from .sky import get_maunakea_spectral_sky_background
+from .sky import get_maunakea_spectral_sky_transmission, get_maunakea_spectral_sky_emission
