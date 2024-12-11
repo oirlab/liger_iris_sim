@@ -46,7 +46,7 @@ def generate_filename(
         subarray = '-' + str(subarray).zfill(2)
     else:
         subarray = ''
-    return f"{dir}{obsid}-Liger-{detector.upper()}-{obstype}{int(level)}-{exp}{subarray}.fits"
+    return f"{dir}{obsid}_Liger_{detector.upper()}_{obstype}_LVL{int(level)}_{exp}{subarray}.fits"
 
 
 DEFAULT_HEADER = fits.Header()
