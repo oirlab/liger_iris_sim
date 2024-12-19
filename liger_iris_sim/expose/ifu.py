@@ -17,29 +17,29 @@ def expose_ifu(
         sky_emission : np.ndarray,
         sky_transmission : np.ndarray,
         efftot : float,
-        gain : float, read_noise : float, dark_current : float
+        read_noise : float, dark_current : float, num_detector_pixels : float = 1.0
     ) -> dict:
     """
     Parameters:
-    source_cube (np.ndarray): Source cube (y, x, wave). Units are photons / sec / m^2 / wavebin.
-    wavebins (np.ndarray): Wavelength grid (microns).
-    itime (float): Integration time (sec).
-    collarea (np.ndarray): Collimating area (m^2)
-    sky_emission (np.ndarray): The sky background emission spectrum sampled on wavebins
-        in units of photons / sec / m^2 / wavebin. Sky emission is NOT modulated by sky_transmission.
-    sky_transmission (np.ndarray): The sky background transmission for each spectrum
-        normalized to [0, 1] for each wavebin. Only affects the source spectrum.
-    efftot (np.ndarray): Total efficiciency (convert photons -> e-)
-    gain (float): Detector gain (e-)
+        source_cube (np.ndarray): Source cube (y, x, wave). Units are photons / sec / m^2 / wavebin.
+        wavebins (np.ndarray): Wavelength grid (microns).
+        itime (float): Integration time (sec).
+        collarea (np.ndarray): Collimating area (m^2)
+        sky_emission (np.ndarray): The sky background emission spectrum sampled on wavebins
+            in units of photons / sec / m^2 / wavebin. Sky emission is NOT modulated by sky_transmission.
+        sky_transmission (np.ndarray): The sky background transmission for each spectrum
+            normalized to [0, 1] for each wavebin. Only affects the source spectrum.
+        efftot (np.ndarray): Total efficiciency (convert photons -> e-).
+        num_detector_pixels (float): The average number of detector pixels that correspond to a 3D IFU pixel.
     
     Returns:
-    dict: The exposure components. Keys are:
-        observed (np.ndarray): Combined exposure (e- / s / wavebin)
-        source (np.ndarray): Source signal (e- / s / wavebin)
-        background (np.ndarray): Background signal (e- / s / wavebin)
-        snr (np.ndarray): SNR
-        noise (np.ndarray): Noise (e- / s / wavebin)
-        read_noise (np.ndarray): Effective read noise (e- RMS wavebin)
+        dict: The exposure components. Keys are:
+            observed (np.ndarray): Combined exposure (e- / s / wavebin)
+            source (np.ndarray): Source signal (e- / s / wavebin)
+            background (np.ndarray): Background signal (e- / s / wavebin)
+            snr (np.ndarray): SNR
+            noise (np.ndarray): Noise (e- / s / wavebin)
+            read_noise (np.ndarray): Effective read noise (e- RMS wavebin)
     """
 
     # Multiply by tellurics (photons / sec / m^2 / wavebin)
@@ -54,7 +54,7 @@ def expose_ifu(
     sky_emission_rate *= efftot
 
     # Dark rate (e- / s / wavebin)
-    dark_rate = dark_current * gain
+    dark_rate = dark_current * num_detector_pixels
 
     # Dark tot (e- / wavebin)
     dark_tot = dark_rate * itime * n_frames
@@ -69,7 +69,11 @@ def expose_ifu(
     source_tot = source_rate * itime * n_frames
 
     # Total read noise noise contribution over all frames, just make 2D (e-)
-    read_noise_tot = np.random.normal(loc=0, scale=read_noise * np.sqrt(n_frames), size=source_cube[:, :, 0].shape)
+    read_noise_tot = np.random.normal(
+        loc=0,
+        scale=read_noise * np.sqrt(n_frames) * np.sqrt(num_detector_pixels),
+        size=source_cube[:, :, 0].shape
+    )
 
     # Final simulated image over all frames (e-)
     sim_tot = source_tot + background_tot

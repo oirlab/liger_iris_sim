@@ -9,8 +9,8 @@ def convolve_point_source(x : float, y : float, flux : np.ndarray, psf : np.ndar
     xpsf, ypsf = np.arange(psf_width) - psf_center_x, np.arange(psf_height) - psf_center_y
     itp = scipy.interpolate.RegularGridInterpolator((ypsf + y, xpsf + x), psf, method='linear', bounds_error=False, fill_value=0)
     xarr, yarr = np.arange(size[1]), np.arange(size[0])
-    xarr, yarr = np.meshgrid(xarr, yarr, indexing='ij')
-    psf_shifted = itp((yarr, xarr))
+    XARR, YARR = np.meshgrid(xarr, yarr, indexing='ij')
+    psf_shifted = itp((XARR, YARR))
     psf_shifted = np.clip(psf_shifted, 0, None)
     psf_shifted /= np.sum(psf_shifted)
     image_out = flux * psf_shifted

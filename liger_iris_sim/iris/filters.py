@@ -29,7 +29,7 @@ def read_filter_info(filename : str):
     return filter_data
 
 
-def get_filter_data(filename : str, filt : str | None = None, bb : bool | None = False):
+def get_filter_data(filename : str, filt : str | None = None):
     """
     Gets the IRIS filters
     
@@ -49,13 +49,4 @@ def get_filter_data(filename : str, filt : str | None = None, bb : bool | None =
                 [filter_data_raw[key][i] for key in filter_data_raw]
             )
         )
-
-    # What filters to return
-    if filt is not None:
-        return filter_data[filt]
-    elif bb:
-        return {
-            key : filter_data[key] for key in filter_data.keys() if key.lower().endswith('bb')
-        }
-    else:
-        return filter_data
+    return filter_data

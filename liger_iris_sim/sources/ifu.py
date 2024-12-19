@@ -14,7 +14,7 @@ def make_point_sources_ifu_cube(
     Parameters:
     xdet (np.ndarray): The x positions in detector coords.
     ydet (np.ndarray): The x positions in detector coords.
-    templates (list[np.ndarray]): A list of templates for each source. Column [:, 0] is wavelength in nm, [:, 1] is flux in photons / sec / m^2 for each wavelength bin.
+    templates (list[np.ndarray]): A list of templates for each source. Column [:, 0] is wavelength in microns, [:, 1] is flux in photons / sec / m^2 for each wavelength bin.
     psfs (list[np.ndarray])
 
     Returns:

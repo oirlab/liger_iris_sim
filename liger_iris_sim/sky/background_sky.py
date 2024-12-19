@@ -5,6 +5,7 @@ import scipy.constants
 from astropy.modeling.models import Gaussian1D, Lorentz1D
 from ..utils import convolve_spectrum
 import warnings
+import pandas as pd
 
 c = scipy.constants.c  # m/s
 h = scipy.constants.h  # J s
@@ -14,17 +15,18 @@ def get_maunakea_spectral_sky_transmission(
         wavelengths : np.ndarray, tapas_file : str, resolution : float | None,
         airmass : float = 1,
     ):
-    dw = np.median(np.diff(wavelengths))
-    tapas_wave, tapas_spec = np.loadtxt(tapas_file, delimiter=',', usecols=(0, 1), unpack=True, comments='#')
+    dw = wavelengths[1] - wavelengths[0]
+    #tapas_wave, tapas_spec = np.loadtxt(tapas_file, delimiter=',', usecols=(0, 1), unpack=True, comments='#')
+    df = pd.read_csv(tapas_file, delimiter=',', usecols=(0, 1), names=["wave", "spec"], header=0)
+    tapas_wave = np.array(df.wave)
+    tapas_spec = np.array(df.spec)
     good = np.where((tapas_wave >= wavelengths[0] - 10*dw) & (tapas_wave <= wavelengths[-1] + 10*dw))[0]
     tapas_wave, tapas_spec = tapas_wave[good], tapas_spec[good]
+    spec = np.interp(wavelengths, tapas_wave, tapas_spec, left=tapas_spec[0], right=tapas_spec[-1])
     if resolution is not None:
-        spec = convolve_spectrum(tapas_wave, tapas_spec, resolution=resolution)
-    spec = np.interp(wavelengths, tapas_wave, tapas_spec, left=np.nan, right=np.nan)
+        spec = convolve_spectrum(wavelengths, spec, resolution=resolution)
     spec **= airmass
     return spec
-
-
 
 def get_maunakea_spectral_sky_emission(
         wavelengths : np.ndarray, resolution : float, ohsim : bool = True,
