@@ -1,3 +1,5 @@
+import numpy as np
+
 def imager_to_spatial(
         xd : float | np.ndarray, yd : float | np.ndarray,
         scale : float, xs0 : float = 0.6, ys0 : float = 0.6,
