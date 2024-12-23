@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 def expose_imager(
         source_image : np.ndarray,
         itime : float, n_frames : int,
-        collarea : float, sky_background_rate : float, efftot : float,
+        collarea : float, sky_emission_rate : float, efftot : float,
         read_noise : float, dark_current : float, num_detector_pixels : float = 1.0
     ) -> dict:
     """
@@ -13,7 +13,7 @@ def expose_imager(
     itime (float): The exposure time in seconds.
     n_frames (float): The total number of frames to coadd, each inducing a read noise.
     collarea (float): The telescope collimating area in units of m^2.
-    sky_background_rate (float): The sky background rate in units of photons / sec / m^2 / pixel.
+    sky_emission_rate (float): The background sky emission rate in units of photons / sec / m^2 / pixel.
     efftot (float): The total efficiency of the system (top of atmosphere -> detector).
     read_noise (float): The read noise in units of e- RMS.
     dark_current (float): The dark current rate in units of ADU / sec / pixel.
@@ -31,37 +31,35 @@ def expose_imager(
 
     # Integrate over telescope aperture (photons / sec)
     source_rate = source_image * collarea
-    sky_background_rate = sky_background_rate * collarea
+    sky_emission_rate = sky_emission_rate * collarea
 
     # Efficiency (effectively converts to e- / s)
     source_rate *= efftot
-    sky_background_rate *= efftot
+    sky_emission_rate *= efftot
 
     # Dark rate (e- / s)
     dark_rate = dark_current
 
-    # Total background rate (e- / s) (per pixel)
-    background_rate = sky_background_rate + dark_rate
-
     # Integrate source and background over itime and frames (e-)
     source_tot = source_rate * itime * n_frames
-    background_tot = background_rate * itime * n_frames
+    dark_tot = dark_rate * itime * n_frames
+    sky_emission_tot = sky_emission_rate * itime * n_frames
 
     # Final simulated image over all frames (e-)
-    sim_tot = source_tot + background_tot
+    sim_tot = source_tot + dark_tot + sky_emission_tot
 
     # Add poisson noise to final image (e-)
-    sim_tot_noisy = np.random.poisson(lam=sim_tot, size=sim_tot.shape)
+    observed_tot = np.random.poisson(lam=sim_tot, size=sim_tot.shape)
 
     # Total read noise noise contribution over all frames (e-)
     read_noise_tot = np.random.normal(
         loc=0,
         scale=read_noise * np.sqrt(n_frames) * np.sqrt(num_detector_pixels),
-        size=source_image.shape
+        size=observed_tot.shape
     )
 
     # Add read noise to final image
-    sim_tot_noisy = sim_tot_noisy + read_noise_tot
+    observed_tot = observed_tot + read_noise_tot
 
     # Simulated noise
     noise_tot = np.sqrt(sim_tot + (read_noise * np.sqrt(n_frames))**2)
@@ -70,17 +68,21 @@ def expose_imager(
     snr = source_tot / noise_tot
 
     # Convert back to e-/s
-    sim_tot_noisy /= (n_frames * itime)
-    source_tot /= (n_frames * itime)
-    background_tot /= (n_frames * itime)
-    noise_tot /= (n_frames * itime)
+    sim_rate = sim_tot / (n_frames * itime)
+    observed_rate = observed_tot / (n_frames * itime)
+    source_rate = source_tot / (n_frames * itime)
+    noise_rate = noise_tot / (n_frames * itime)
 
     # Outputs
     out = dict(
-        observed=sim_tot_noisy,
-        source=source_tot, background=background_tot,
-        snr=snr, noise=noise_tot,
-        read_noise=read_noise_tot,
+        sim_rate=sim_rate, sim_tot=sim_tot,
+        observed_rate=observed_rate, observed_tot=observed_tot,
+        source_rate=source_rate, source_tot=source_tot,
+        dark_rate=dark_rate, dark_tot=dark_tot,
+        sky_emission_rate=sky_emission_rate, sky_emission_tot=sky_emission_tot,
+        snr=snr,
+        noise_rate=noise_rate, noise_tot=noise_tot,
+        read_noise_tot=read_noise_tot,
     )
       
     # Return
