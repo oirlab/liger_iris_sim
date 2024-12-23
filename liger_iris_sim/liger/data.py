@@ -9,5 +9,5 @@ def generate_filename(
     if type(subarray) in (int, str):
         subarray = '-' + str(subarray).zfill(2)
     else:
-        subarray = ''
+        subarray = '-00'
     return f"{obsid}_Liger_{detector.upper()}_{obstype}_LVL{int(level)}_{exp}{subarray}.fits"
