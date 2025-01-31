@@ -1,52 +1,21 @@
 import numpy as np
+import os
+
+__all__ = ['get_filter_data']
 
 
-def read_filter_info(filename : str):
-
-    # Load filter data
-    info = np.genfromtxt(filename, dtype=str)
-
-    # Convert to dict with these keys
-    keys = [
-        "filter", "wavemin", "wavemax", "wavecenter",
-        "bandwidth", "backmag", "imagmag", "zp", "zpphot",
-        "psfname", "psfsamp", "psfsize", "filterfiles"
-    ]
-    filter_data = dict(zip(keys, info.T))
-
-    # Convert to numbers
-    for key in filter_data:
-        if filter_data[key][0][0].isdigit():
-            filter_data[key] = filter_data[key].astype(float)
-
-    # Convert wavelengths to microns
-    filter_data['wavemin'] /= 1E4
-    filter_data['wavecenter'] /= 1E4
-    filter_data['wavemax'] /= 1E4
-    filter_data['bandwidth'] /= 1E4
-
-    # Return
-    return filter_data
-
-
-def get_filter_data(filename : str, filt : str | None = None):
+def get_filter_data():
     """
-    Gets the IRIS filters
-    
-    Parameters:
-    filename (str): The filename containing the info for all filters.
+    Loads the filter summary file.
+
+    Returns:
+        dict: The filter data. Keys are filter names.
+            Values are also dicts with basic info for the filter.
     """
-
-    # Read filter data
-    filter_data_raw = read_filter_info(filename)
-
-    # Transpose so that filter names are the keys
-    filter_data = {}
-    for i, f in enumerate(filter_data_raw['filter']):
-        filter_data[f] = dict(
-            zip(
-                filter_data_raw.keys(),
-                [filter_data_raw[key][i] for key in filter_data_raw]
-            )
-        )
-    return filter_data
+    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filename = os.path.join(module_dir, 'data/filters/filters_summary.txt')
+    data = np.genfromtxt(filename, dtype=None, names=True, delimiter=',', encoding='utf-8')
+    out = {}
+    for i, filt in enumerate(data['filter']):
+        out[filt] = {key : data[key][i] for key in data.dtype.names}
+    return out

@@ -122,7 +122,9 @@ dependencies = [
   "numpy<2",
   "astropy",
   "scipy",
-  "matplotlib"
+  "matplotlib",
+  "pysynphot",
+  "synphot"
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -166,4 +168,4 @@ sample = "sample:main"
 [tool.setuptools]
 # If there are data files included in your packages that need to be
 # installed, specify them here.
-package-data = {"sample" = ["*.dat"]}
+package-data = {"liger_iris_sim" = ["data/filters/*.txt", "data/gratings/*.txt", "data/sky/*.txt"]}

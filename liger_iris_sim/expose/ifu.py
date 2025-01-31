@@ -1,17 +1,8 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 # SNR
-# SNR equation:
-# S/N = S*sqrt(T)/sqrt(S + npix(B + D + R^2/t))
-# t = itime per frame
-# T = sqrt(Nframes*itime)
-# S, B, D -> electrons per second
-# R -> read noise (electrons)
-
 def expose_ifu(
         source_cube : np.ndarray,
-        wavebins : np.ndarray,
         itime : float, n_frames : int,
         collarea : float,
         sky_emission : np.ndarray,
@@ -20,9 +11,8 @@ def expose_ifu(
         read_noise : float, dark_current : float, num_detector_pixels : float = 1.0
     ) -> dict:
     """
-    Parameters:
+    Args:
         source_cube (np.ndarray): Source cube (y, x, wave). Units are photons / sec / m^2 / wavebin.
-        wavebins (np.ndarray): Wavelength grid (microns).
         itime (float): Integration time (sec).
         collarea (np.ndarray): Collimating area (m^2)
         sky_emission (np.ndarray): The sky background emission spectrum sampled on wavebins

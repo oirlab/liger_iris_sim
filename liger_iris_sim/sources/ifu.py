@@ -1,49 +1,43 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from .convolve import convolve_point_source
 
+__all__ = ['make_point_source_ifu_cube']
+
 # Positions in detector coordinates
-def make_point_sources_ifu_cube(
-        xdet : np.ndarray, ydet : np.ndarray,
-        templates : list[np.ndarray],
-        psfs : list[np.ndarray],
+def make_point_source_ifu_cube(
+        xdet : float, ydet : float,
+        template : tuple[np.ndarray, np.ndarray],
+        psf : np.ndarray,
         size : tuple[int, int],
         cube_out : np.ndarray | None = None,
     ) -> np.ndarray:
     """
-    Parameters:
-    xdet (np.ndarray): The x positions in detector coords.
-    ydet (np.ndarray): The x positions in detector coords.
-    templates (list[np.ndarray]): A list of templates for each source. Column [:, 0] is wavelength in microns, [:, 1] is flux in photons / sec / m^2 for each wavelength bin.
-    psfs (list[np.ndarray])
+    Args:
+        xdet (np.ndarray): The x positions in detector coords.
+        ydet (np.ndarray): The x positions in detector coords.
+        template (list[tuple[np.ndarray, np.ndarray]): A spectral template (wave [microns], flux [photons/sec/m^2]).
+        psfs (list[np.ndarray]): The psfs for each source (2D arrays).
 
     Returns:
-    np.ndarray: The image cube in photons / sec / m^2 for each wavelength*spaxel bin.
+        np.ndarray: The image cube in photons / sec / m^2 for each wavelength*spaxel bin.
     """
 
-    # Number of sources
-    assert len(xdet) == len(ydet) == len(templates) == len(psfs)
-    n_sources = len(xdet)
-    
     # Number of wavelengths
-    n_wavelengths = len(templates[0][0])
+    n_wavelengths = len(template[0])
+
+    print(f"Creating IFU cube with point source {xdet=}, {ydet=}, {template[0][0] - template[0][1]} microns, {n_wavelengths=}")
 
     # Output cube in units phot / s / nm / m^2
     if cube_out is None:
-        cube_out = np.zeros(shape=(size[0], size[1], n_wavelengths))
+        cube_out = np.zeros(shape=(size[0], size[1], n_wavelengths), dtype=float)
+
+    # Relative to template[1][0]
+    image0 = convolve_point_source(xdet, ydet, template[1][0], psf, size=size)
 
     # Loop over point sources
-    for i in range(n_sources):
-        for j in range(n_wavelengths):
-
-            # Print
-            print(f"Processing source {i + 1} : X = {xdet[i]}, Y = {ydet[i]}, Wavelength = {templates[i][0][j]} microns")
-
-            # Convolve with PSF
-            image_ij = convolve_point_source(xdet[i], ydet[i], templates[i][1][j], psfs[i], size=size)
-
-            # Inject into image
-            cube_out[:, :, j] += image_ij
+    for i in range(n_wavelengths):
+        image_i = image0 * template[1][i] / template[1][0]
+        cube_out[:, :, i] += image_i
         
     # Return the cube
     return cube_out

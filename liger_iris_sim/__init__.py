@@ -1,8 +1,11 @@
 from .utils import *
-
-from .expose.imager import expose_imager
-from .expose.ifu import expose_ifu
-from .sources.imager import make_point_sources_imager
-from .sources.ifu import make_point_sources_ifu_cube
-
+from .expose import expose_imager, expose_ifu
+from .sources import convolve_point_source, make_point_source_imager, make_point_source_ifu_cube
 from .sky import get_maunakea_spectral_sky_transmission, get_maunakea_spectral_sky_emission
+
+__all__ = [
+    'expose_imager', 'expose_ifu',
+    'convolve_point_source', 'make_point_source_imager', 'make_point_source_ifu_cube'
+    'get_maunakea_spectral_sky_transmission', 'get_maunakea_spectral_sky_emission'
+]
+

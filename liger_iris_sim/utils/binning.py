@@ -1,5 +1,6 @@
 import numpy as np
-import scipy.ndimage
+
+__all__ = ['rebin', 'frebin', 'bin_image', 'crop_AO_psf']
 
 def rebin(image, new_shape):
     M, N = image.shape
@@ -78,20 +79,23 @@ def bin_image(image : np.ndarray, scale_in : tuple, scale_out : tuple):
 
 def crop_AO_psf(
         psf : np.ndarray,
-        scale : float, wavelength : float, colldiam : float, n : int | None = None,
+        scale : float,
+        wavelength : float,
+        colldiam : float,
+        n : int | None = None,
         center : tuple[float, float] | None = None
     ):
     """
-    Parameters:
-    psf (np.ndarray): The PSF to resample.
-    scale (float): The size of a PSF pixel in arcsec.
-    colldiam (float): The effective collimating diameter
-    n (float): The number of lambda / D's to crop by.
-    center (float): The center of the PSF (y, x)
+    Args:
+        psf (np.ndarray): The PSF to resample.
+        scale (float): The size of a PSF pixel in arcsec.
+        colldiam (float): The effective collimating diameter in meters.
+        n (float): The number of lambda / D's to crop by.
+        center (float): The center of the PSF (y, x)
 
     Returns:
-    np.ndarray: The new PSF.
-    tuple[float, float]: The center of the new psf
+        np.ndarray: The new PSF.
+        tuple[float, float]: The center of the new psf
     """
     
     # "Center" of PSF

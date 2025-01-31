@@ -1,32 +1,20 @@
 import numpy as np
-import scipy.interpolate
 from astropy.modeling.models import Gaussian1D
-import scipy.constants
-from specutils import Spectrum1D
-from specutils.manipulation import FluxConservingResampler
-import astropy.units as units
 
-
-# #@njit
-# def bin_spectrum(wave, spec, wave_out):
-#     spec_out = np.zeros(wave_out.size)
-#     for i in range(spec_out.size):
-#         #ii = np.searchsorted(wave, wave_out[i], side='left')
-#         #jj = np.searchsorted(wave, wave_out[i]+1, side='left')
-#         #spec_out[i] = val
-#     return spec_out
-
+__all__ = ['convolve_spectrum']
 
 def convolve_spectrum(
         wavelengths : np.ndarray, spectrum : np.ndarray,
         resolution : float, n_res : float = 8
     ) -> np.ndarray:
     """
-    Parameters:
-    wavelengths (np.ndarray): The wavelength grid.
-    spectrum (np.ndarray): The spectrum grid.
-    resolution (float): The desired resolution, R = lambda / fwhm.
-    n_res (float): The number of resolution elements (fwhm) to include in the LSF on each side, defaults to 8.
+    Convolve a spectrum with a Gaussian line spread function (LSF).
+
+    Args:
+        wavelengths (np.ndarray): The wavelength grid.
+        spectrum (np.ndarray): The spectrum grid.
+        resolution (float): The desired resolution, R = lambda / fwhm.
+        n_res (float): The number of resolution elements (fwhm) to include in the LSF on each side, defaults to 8.
     """
     fwhm = np.mean(wavelengths) / resolution
     stddev = fwhm / (2 * np.sqrt(2 * np.log(2)))
