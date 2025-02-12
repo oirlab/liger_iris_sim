@@ -1,6 +1,7 @@
 from .binning import *
 from .spec_utils import *
 from .filter_utils import *
+from .grating_utils import *
 
 __all__ = [
     'rebin', 'frebin', 'bin_image', 'crop_AO_psf',
@@ -9,6 +10,7 @@ __all__ = [
     '_resolve_mode',
     'load_filter_data',
     'load_filter_transmission_curve',
+    'load_grating_data',
 ]
 
 def _resolve_mode(mode : str):

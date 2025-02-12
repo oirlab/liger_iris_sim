@@ -1,4 +1,4 @@
-groov_density,resolution,alpha,dimension,wavemin,wavemax,wavecenter
+grating,groov_density,resolution,alpha,dimension,wavemin,wavemax,wavecenter
 Z4000,368,4000,10.3,32.801,0.8107,0.9967,0.8989
 Y4000,319,4000,10.3,32.801,0.9330,1.1510,1.0362
 J4000,264,4000,10.3,32.801,1.1350,1.3890,1.2555
