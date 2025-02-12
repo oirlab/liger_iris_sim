@@ -6,7 +6,9 @@ __all__ = [
     'rebin', 'frebin', 'bin_image', 'crop_AO_psf',
     'compute_filter_zeropoint',
     'convolve_spectrum',
-    '_resolve_mode'
+    '_resolve_mode',
+    'load_filter_data',
+    'load_filter_transmission_curve',
 ]
 
 def _resolve_mode(mode : str):

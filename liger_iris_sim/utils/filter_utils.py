@@ -1,8 +1,9 @@
 import numpy as np
 from astropy import units as u
 from synphot import SourceSpectrum
+import os
 
-__all__ = ['compute_filter_zeropoint', 'compute_filter_mag']
+__all__ = ['compute_filter_zeropoint', 'compute_filter_mag', 'load_filter_data', 'load_filter_transmission_curve']
 
 
 def compute_filter_zeropoint(filter_wave : np.ndarray, filter_trans : np.ndarray) -> float:
@@ -50,3 +51,37 @@ def compute_filter_mag(photon_flux : float, zp : float) -> float:
     """
     mag = -2.5 * np.log10(photon_flux / zp)
     return mag
+
+
+def load_filter_data():
+    """
+    Loads the filter summary file.
+
+    Returns:
+        dict: The filter data. Keys are filter names.
+            Values are also dicts with basic info for the filter.
+    """
+    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filename = os.path.join(module_dir, 'data/filters/filters_summary.txt')
+    data = np.genfromtxt(filename, dtype=None, names=True, delimiter=',', encoding='utf-8')
+    out = {}
+    for i, filt in enumerate(data['filter']):
+        out[filt] = {key : data[key][i] for key in data.dtype.names}
+    return out
+
+
+def load_filter_transmission_curve(filter_name : str):
+    """
+    Load the transmission curve for a filter.
+
+    Args:
+        filter_name (str): The filter name.
+
+    Returns:
+        np.ndarray: The wavelength grid (microns).
+        np.ndarray: The transmission curve (0-1).
+    """
+    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filename = os.path.join(module_dir, f'data/filters/iris_filter_{filter_name}.txt')
+    filter_wave, filter_trans = np.loadtxt(filename, delimiter=',', unpack=True)
+    return filter_wave, filter_trans
