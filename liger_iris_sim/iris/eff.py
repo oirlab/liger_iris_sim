@@ -4,7 +4,7 @@ from ..utils import _resolve_mode
 def compute_eff(
         mode : str,
         wavelength : float,
-        tel : float = 0.91, ao : float = 0.8, filt : float = 0.9
+        tel : float = 0.91, ao : float = 0.8, filt : float = 0.9, instrument : float | None = None,
     ) -> float:
     """
     Compute the total efficiency for the given mode and wavelength.
@@ -18,10 +18,13 @@ def compute_eff(
 
     """
     mode = _resolve_mode(mode)
-    if mode == 'imager':
-        inst_eff = compute_imager_eff(wavelength)
-    elif mode in ('slicer', 'lenslet'):
-        inst_eff = compute_ifu_eff(wavelength)
+    if instrument is None:
+        if mode == 'imager':
+            inst_eff = compute_imager_eff(wavelength)
+        elif mode in ('slicer', 'lenslet'):
+            inst_eff = compute_ifu_eff(wavelength)
+    else:
+        inst_eff = instrument
     efftot = tel * ao * filt * inst_eff
     return efftot
 
