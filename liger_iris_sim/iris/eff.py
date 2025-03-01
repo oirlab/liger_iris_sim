@@ -18,26 +18,22 @@ def compute_eff(
 
     """
     mode = _resolve_mode(mode)
-    if mode == 'img':
-        return _compute_imager_eff(wavelength, tel=tel, ao=ao, filt=filt)
+    if mode == 'imager':
+        inst_eff = compute_imager_eff(wavelength)
     elif mode in ('slicer', 'lenslet'):
-        return _compute_ifu_eff(wavelength, tel=tel, ao=ao, filt=filt)
+        inst_eff = compute_ifu_eff(wavelength)
+    efftot = tel * ao * filt * inst_eff
+    return efftot
 
-def _compute_imager_eff(
-        wavelength : float, tel : float = 0.91, ao : float = 0.8, filt : float = 0.9
-    ):
+def compute_imager_eff(wavelength : float) -> float:
     waves_eff = np.array([830, 900, 2000, 2200, 2300, 2412])
     imager_eff = np.array([0.631, 0.772, 0.772, 0.813, 0.763, 0.728])
     imager_eff = np.interp(wavelength, waves_eff, imager_eff)
-    efftot = tel * ao * filt * imager_eff
-    return efftot
+    return imager_eff
 
 
-def _compute_ifu_eff(
-        wavelength : float, tel : float = 0.91, ao : float = 0.8, filt : float = 0.9
-    ):
+def compute_ifu_eff(wavelength : float) -> float:
     waves_eff = np.array([830, 900, 2000, 2200, 2300, 2412])
     ifu_eff = np.array([0.631, 0.772, 0.772, 0.813, 0.763, 0.728])
     ifu_eff = np.interp(wavelength, waves_eff, ifu_eff)
-    efftot = tel * ao * filt * ifu_eff
-    return efftot
+    return ifu_eff
