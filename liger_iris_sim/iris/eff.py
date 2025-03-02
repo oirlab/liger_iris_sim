@@ -29,14 +29,14 @@ def compute_eff(
     return efftot
 
 def compute_imager_eff(wavelength : float) -> float:
-    waves_eff = np.array([830, 900, 2000, 2200, 2300, 2412])
+    waves_eff = np.array([0.83, 0.9, 2.0, 2.2, 2.3, 2.412])
     imager_eff = np.array([0.631, 0.772, 0.772, 0.813, 0.763, 0.728])
     imager_eff = np.interp(wavelength, waves_eff, imager_eff)
     return imager_eff
 
 
 def compute_ifu_eff(wavelength : float) -> float:
-    waves_eff = np.array([830, 900, 2000, 2200, 2300, 2412])
+    waves_eff = np.array([0.83, 0.9, 2.0, 2.2, 2.3, 2.412])
     ifu_eff = np.array([0.631, 0.772, 0.772, 0.813, 0.763, 0.728])
     ifu_eff = np.interp(wavelength, waves_eff, ifu_eff)
     return ifu_eff
