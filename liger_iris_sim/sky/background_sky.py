@@ -110,6 +110,16 @@ def get_maunakea_spectral_sky_emission(
 
     return out
 
+def load_gemini_sky():
+    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filename = os.path.join(module_dir, 'data/sky/mk_skybg_zm_16_15_ph.fits')
+    with fits.open(filename) as hdul:
+        header = hdul[0].header
+        n = header['NAXIS1']
+        w = np.arange(n) * header['CDELT1'] + header['CRVAL1']
+        w /= 1E7
+        sky_gemini = hdul[0].data
+    return w, sky_gemini
 
 # def get_gemini_background(filename : str, wavelengths : np.ndarray):
 #     """
