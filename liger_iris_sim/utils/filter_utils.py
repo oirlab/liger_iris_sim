@@ -1,21 +1,43 @@
 import numpy as np
 from astropy import units as u
 from synphot import SourceSpectrum
-import os
 
-__all__ = ['compute_filter_zeropoint', 'compute_filter_mag', 'load_filter_data', 'load_filter_transmission_curve']
+__all__ = [
+    'compute_filter_zeropoint',
+    'compute_filter_mag',
+    'compute_filter_photon_flux',
+    'generate_wave_grid_for_filter',
+]
 
+
+def generate_wave_grid_for_filter(
+    filter_info : dict,
+    resolution : float,
+    sampling_factor : float = 1
+) -> np.ndarray:
+    wi = filter_info['wavemin']
+    wf = filter_info['wavemax']
+    return _generate_wave_grid(wi, wf, resolution, sampling_factor)
+
+def _generate_wave_grid(wi : float, wf : float, resolution : float, sampling_factor : float = 1) -> np.ndarray:
+    dw = wi / resolution / (2 * sampling_factor)
+    return np.arange(wi, wf + dw, dw)
 
 def compute_filter_zeropoint(filter_wave : np.ndarray, filter_trans : np.ndarray) -> float:
     """
     Compute the zero point of the filter in phot/s/m^2.
 
-    Args:
-        filter_wave (np.ndarray): The filter curve wave grid (microns).
-        filter_trans (np.ndarray): The filter curve transmission (0-1).
+    Parameters
+    ----------
+    filter_wave : np.ndarray
+        The filter curve wave grid (microns).
+    filter_trans : np.ndarray
+        The filter curve transmission (0-1).
 
-    Returns:
-        float: The zero point in phot/s/m^2.
+    Returns
+    -------
+    zp : float
+        The zero point in phot/s/m^2.
     """
 
     # Load Vega spectrum from synphot
@@ -33,7 +55,7 @@ def compute_filter_zeropoint(filter_wave : np.ndarray, filter_trans : np.ndarray
     vega_flux_interp = np.interp(filter_wave, vega_wave, vega_flux_photlam, left=0, right=0)
 
     # Integral of flux over bandpass (photons/s/m^2)
-    zp = np.trapz(vega_flux_interp * filter_trans, filter_wave)
+    zp = np.trapezoid(vega_flux_interp * filter_trans, filter_wave)
 
     # Return zp in phot/s/m^2
     return zp
@@ -42,46 +64,36 @@ def compute_filter_mag(photon_flux : float, zp : float) -> float:
     """
     Compute the magnitudes of the filter curve.
 
-    Args:
-        photon_flux (float): The integrated photon flux across the bandpass in phot/s/m^2.
-        zp (float): The zero point of the filter in phot/s/m^2.
+    Parameters
+    ----------
+    photon_flux : float
+        The integrated photon flux across the bandpass in phot/s/m^2.
+    zp : float
+        The zero point of the filter in phot/s/m^2.
 
-    Returns:
-        float: The magnitude
+    Returns
+    -------
+    mag : float
+        The magnitude
     """
     mag = -2.5 * np.log10(photon_flux / zp)
     return mag
 
-
-def load_filter_data():
+def compute_filter_photon_flux(mag : float, zp : float) -> float:
     """
-    Loads the filter summary file.
+    Compute the photon flux from the magnitude and zero point.
 
-    Returns:
-        dict: The filter data. Keys are filter names.
-            Values are also dicts with basic info for the filter.
+    Parameters
+    ----------
+    mag : float
+        The magnitude.
+    zp : float
+        The zero point of the filter in phot/s/m^2.
+
+    Returns
+    -------
+    photon_flux : float
+        The integrated photon flux across the bandpass in phot/s/m^2.
     """
-    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filename = os.path.join(module_dir, 'data/filters/filters_summary.txt')
-    data = np.genfromtxt(filename, dtype=None, names=True, delimiter=',', encoding='utf-8')
-    out = {}
-    for i, filt in enumerate(data['filter']):
-        out[filt] = {key : data[key][i] for key in data.dtype.names}
-    return out
-
-
-def load_filter_transmission_curve(filter_name : str):
-    """
-    Load the transmission curve for a filter.
-
-    Args:
-        filter_name (str): The filter name.
-
-    Returns:
-        np.ndarray: The wavelength grid (microns).
-        np.ndarray: The transmission curve (0-1).
-    """
-    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filename = os.path.join(module_dir, f'data/filters/iris_filter_{filter_name}.txt')
-    filter_wave, filter_trans = np.loadtxt(filename, delimiter=',', unpack=True)
-    return filter_wave, filter_trans
+    photon_flux = zp * 10**(-0.4 * mag)
+    return photon_flux

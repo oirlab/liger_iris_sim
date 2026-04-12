@@ -1,11 +1,14 @@
-from .utils import *
-from .expose import expose_imager, expose_ifu
-from .sources import convolve_point_source, make_point_source_imager, make_point_source_ifu_cube
-from .sky import get_maunakea_spectral_sky_transmission, get_maunakea_spectral_sky_emission
 
-__all__ = [
-    'expose_imager', 'expose_ifu',
-    'convolve_point_source', 'make_point_source_imager', 'make_point_source_ifu_cube'
-    'get_maunakea_spectral_sky_transmission', 'get_maunakea_spectral_sky_emission'
-]
+try:
+    from ._version import version as __version__
+except ImportError:
+    try:
+        from setuptools_scm import get_version
+        __version__ = get_version(root="..", relative_to=__file__)
+    except (ImportError, LookupError):
+        __version__ = "unknown"
 
+from . import utils
+from . import sky
+from . import expose
+from . import sources 

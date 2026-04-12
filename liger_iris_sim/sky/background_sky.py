@@ -1,69 +1,135 @@
 import numpy as np
 from astropy.io import fits
-import scipy.interpolate as interpolate
 import scipy.constants
-from astropy.modeling.models import Gaussian1D, Lorentz1D
-from ..utils import convolve_spectrum
+from astropy.modeling.models import Lorentz1D
+from ..sources.convolve import convolve_spectrum
+from ..utils.resampling import rebin_spectrum
+
 import warnings
 import pandas as pd
 import os
+
+from liger_iris_drp_resources.model_spectra import download_model_spectra, _get_model_spectra_dir
 
 c = scipy.constants.c  # m/s
 h = scipy.constants.h  # J s
 k = scipy.constants.k # J / K
 
+__all__ = [
+    'get_maunakea_spectral_sky_transmission',
+    'get_maunakea_spectral_sky_emission',
+]
+
+def _get_tapas_filepath():
+    filepath = os.path.join(_get_model_spectra_dir(), 'TAPAS_Maunakea_NIR.txt')
+    return filepath
+
 def get_maunakea_spectral_sky_transmission(
-        wavelengths : np.ndarray,
-        resolution : float | None,
-        airmass : float = 1,
-    ) -> np.ndarray:
+    wave : np.ndarray,
+    resolution : float | None,
+    airmass : float = 1,
+) -> np.ndarray:
     """
     Compute the Maunakea sky transmission spectrum (0, 1).
 
-    Args:
-        wavelengths (np.ndarray): The wavelength array.
-        tapas_file (str): The path to the TAPAS file.
-        resolution (float): The spectral resolution. If None, no convolution is performed.
-        airmass (float): The airmass.
+    Parameters
+    ----------
+    wave : np.ndarray
+        The wavelength array in microns to sample the output transmission spectrum on.
+    resolution : float | None
+        The spectral resolution. If None, no convolution is performed.
+        Default is None.
+    airmass : float, optional
+        The airmass. Default is 1.
 
-    Returns:
-        np.ndarray: The convolved and resampled transmission spectrum.
+    Returns
+    -------
+    spec : np.ndarray
+        The convolved and resampled transmission spectrum.
     """
-    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filename = os.path.join(module_dir, 'data/sky/TAPAS_Maunakea_NIR.txt')
-    df = pd.read_csv(filename, delimiter=',', usecols=(0, 1), names=["wave", "spec"], header=0)
+    tapas_filepth = _get_tapas_filepath()
+    df = pd.read_csv(tapas_filepth, delimiter=',', usecols=(0, 1), names=["wave", "spec"], header=0)
     tapas_wave = np.array(df.wave)
     tapas_spec = np.array(df.spec)
-    dw = wavelengths[1] - wavelengths[0]
-    good = np.where((tapas_wave >= wavelengths[0] - 10*dw) & (tapas_wave <= wavelengths[-1] + 10*dw))[0]
-    tapas_wave, tapas_spec = tapas_wave[good], tapas_spec[good]
-    spec = np.interp(wavelengths, tapas_wave, tapas_spec, left=tapas_spec[0], right=tapas_spec[-1])
+    dw = wave[1] - wave[0]
+    good = np.where((tapas_wave >= wave[0] - 10*dw) & (tapas_wave <= wave[-1] + 10*dw))[0]
+    # TODO: Bin, don't convolve this onto wavegrid.
+    tapas_wave = tapas_wave[good]
+    tapas_spec = tapas_spec[good]
+    #tapas_wave_uniform = np.linspace(tapas_wave[0], tapas_wave[-1], len(tapas_wave))
+    #tapas_spec_uniform = np.interp(tapas_wave_uniform, tapas_wave, tapas_spec)
+    #dw = tapas_wave_uniform[1] - tapas_wave_uniform[0]
+    #flux_scale = dw / (wave[1] - wave[0])
+    #spec = rebin_spectrum(tapas_wave_uniform, tapas_spec_uniform * flux_scale, wave)
+    spec, *edges = rebin_spectrum(tapas_wave, tapas_spec * np.gradient(tapas_wave), wave, return_edges=True)
+    spec /= (edges[1][1:] - edges[1][:-1])
+    # import matplotlib
+    # matplotlib.use('QTAGG')
+    # import matplotlib.pyplot as plt
+    # plt.plot(tapas_wave, tapas_spec)
+    # plt.plot(wave, spec)
+    # plt.show()
+    # breakpoint()
     if resolution is not None:
-        spec = convolve_spectrum(wavelengths, spec, resolution=resolution)
+        spec = convolve_spectrum(wave, spec, resolution=resolution)
     spec **= airmass
-    return spec
+    out = dict( # NOTE: Keep dict when we eventually return species separately
+        wave=wave,
+        sky_trans=spec,
+    )
+    return out
 
 
 def get_maunakea_spectral_sky_emission(
-        wavelengths : np.ndarray,
-        resolution : float,
-        ohlines_file : str | None = None,
-        T_tel : float = 275, T_atm : float = 258, T_aos : float = 243, T_zod : float = 5800,
-        Em_tel : float = 0.09, Em_atm : float = 0.2, Em_aos : float = 0.01, Em_zod : float = 1.47E-12,
-    ) -> dict:
+    wave : np.ndarray,
+    resolution : float,
+    T_tel : float = 275, T_atm : float = 258, T_aos : float = 243, T_zod : float = 5800,
+    Em_tel : float = 0.09, Em_atm : float = 0.2, Em_aos : float = 0.01, # Em_zod : float = 1.47E-12,
+    ohsim : bool = True,
+) -> dict:
     """
     Compute the Maunakea sky emission spectrum.
 
-    Args:
-        wavelengths (np.ndarray): The wavelength array.
-        resolution (float): The spectral resolution (taken to be constant across bandpass here).
+    Parameters
+    ----------
+    wave : np.ndarray
+        The wavelength array.
+    resolution : float
+        The spectral resolution (taken to be constant across bandpass here).
+    T_tel : float, optional
+        The telescope temperature. Defaults to 275.
+    T_atm : float, optional
+        The atmospheric temperature. Defaults to 258.
+    T_aos : float, optional
+        The AO temperature. Defaults to 243.
+    T_zod : float, optional
+        The zodiacal light temperature. Defaults to 5800.
+    Em_tel : float, optional
+        The telescope emission coefficient. Defaults to 0.09.
+    Em_atm : float, optional
+        The atmospheric emission coefficient. Defaults to 0.2.
+    Em_aos : float, optional
+        The AO emission coefficient. Defaults to 0.01.
+    ohsim : bool, optional
+        If True, include the simulated OH lines. Defaults to True.
+
+    Returns
+    -------
+    sky_data : dict
+        A dictionary containing the sky emission spectrum and its components:
+        - 'wave': The wavelength array in microns.
+        - 'sky_em': The total sky emission spectrum (photons / (s * m^2 * arcsec^2 * wavebin)).
+        - 'bbtel': The telescope blackbody spectrum component (photons / (s * m^2 * arcsec^2 * wavebin)).
+        - 'bbaos': The AO blackbody spectrum component (photons / (s * m^2 * arcsec^2 * wavebin)).
+        - 'bbatm': The atmospheric blackbody spectrum component (photons / (s * m^2 * arcsec^2 * wavebin)).
+        - 'bbzod': The zodiacal light blackbody spectrum component (photons / (s * m^2 * arcsec^2 * wavebin)).
     """
 
     sterr = 1 / 206265**2 # rad^2 / arcsec^2
-    dw = np.nanmedian(np.diff(wavelengths))
+    dw = np.nanmedian(np.diff(wave))
 
     # BB components
-    wavem = wavelengths * 1E-6
+    wavem = wave * 1E-6
     s1 = 2 * h * c**2 / wavem**5
     s2 = h * c / (wavem * k)
     Ephot = h * c / wavem # J / photon
@@ -93,26 +159,40 @@ def get_maunakea_spectral_sky_emission(
                 + bbatm * Em_atm
 
     # OH lines: photons / (s * m^2 * arcsec^2 * wavebin)
-    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    ohlines_file = os.path.join(module_dir, 'data/sky/optical_ir_sky_lines.txt')
-    ohspec = sim_ohlines(wavelengths, ohlines_file=ohlines_file, resolution=resolution)
+    if ohsim:
+        ohspec = sim_ohlines(wave, resolution=resolution)
+    else:
+        ohspec = None
 
     # Combined sky emission
     # photons / (s * m^2 * arcsec^2 * wavebin)
-    sky_emission = bbspec + ohspec
+    sky_em = bbspec + ohspec
     
     # Results
-    out = dict(
-        wavelengths=wavelengths, sky_emission=sky_emission,
+    sky_data = dict(
+        wave=wave, sky_em=sky_em,
         bbtel=bbtel, bbaos=bbaos, bbatm=bbatm, bbzod=bbzod, bbspec=bbspec,
         ohspec=ohspec
     )
 
-    return out
+    return sky_data
 
-def load_gemini_sky():
-    module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filename = os.path.join(module_dir, 'data/sky/mk_skybg_zm_16_15_ph.fits')
+def _get_gemini_sky_filepath():
+    return os.path.join(_get_model_spectra_dir(), 'mk_skybg_zm_16_15_ph.fits')
+
+def _load_gemini_sky():
+    """
+    Load the Gemini sky spectrum from a FITS file.
+    The spectrum is in units of J / (s * m^2 * micron * arcsec^2).
+
+    Returns
+    -------
+    wave : np.ndarray
+        The wavelength array in microns.
+    sky_gemini : np.ndarray
+        The Gemini sky spectrum in units of J / (s * m^2 * micron * arcsec^2).
+    """
+    filename = _get_gemini_sky_filepath()
     with fits.open(filename) as hdul:
         header = hdul[0].header
         n = header['NAXIS1']
@@ -121,93 +201,125 @@ def load_gemini_sky():
         sky_gemini = hdul[0].data
     return w, sky_gemini
 
-# def get_gemini_background(filename : str, wavelengths : np.ndarray):
-#     """
-#     """
-#     # Load Gemini file
-#     with fits.open(filename) as f:
-#         gemini_spec = f[0].data
-#         header = f[0].header
+def get_gemini_background(
+    wave : np.ndarray,
+    resolution : float | None = None
+) -> np.ndarray:
+    """
+    Get the Gemini background spectrum resampled onto wave.
+    The output spectrum is in units of photons / (s * m^2 * arcsec^2).
 
-#     # Wave grid for Gemini spectrum
-#     cdelt1 = header["CDELT1"] * 1E-4
-#     crval1 = header["CRVAL1"] * 1E-4
-#     nx = gemini_spec.shape[0]
-#     gemini_wave = np.arange(nx) * cdelt1 + crval1
+    Parameters
+    ----------
+    wave : np.ndarray
+        The wavelength array.
 
-#     # Convolve
-#     delt = 2 * (wavelengths[1] - wavelengths[0]) / (gemini_wave[1] - gemini_wave[0])
-#     if delt > 1:
-#         stddev = delt / 2 * np.sqrt(2 * np.log(2))
-#         x = np.arange(4 * int(delt) + 1) - 2 * int(delt)
-#         psf = Gaussian1D(amplitude=1, stddev=stddev)(x)
-#         psf /= psf.sum()
-#         gemini_spec = np.convolve(gemini_spec, psf, mode='same')
-    
-#     # Interpolate onto our wavelengths grid
-#     ohspec = np.interp(wavelengths, gemini_wave, gemini_spec)
-    
-#     # Return
-#     return ohspec
+    Returns
+    -------
+    gem_sky : np.ndarray
+        The Gemini background spectrum binned on the input wave grid.
+    """
+    # Load Gemini file
+    # Wave units = microns
+    # spec units = photons / (s * m^2 * nm * arcsec^2)
+    # ph/sec/arcsec^2/nm/m^2
+    gem_wave, gem_sky = _load_gemini_sky()
 
+    # Convolve
+    if resolution is not None:
+        gem_sky = convolve_spectrum(gem_wave, gem_sky, resolution=resolution)
+
+    gem_sky *= 1E3 # photons / (s * m^2 * micron * arcsec^2)
+    dw_in = gem_wave[1] - gem_wave[0]
+    gem_sky = rebin_spectrum(gem_wave, gem_sky * dw_in, wave)
+
+    # Return
+    return gem_sky
+
+
+def _get_ohlines_filepath():
+    return os.path.join(_get_model_spectra_dir(), 'optical_ir_sky_lines.txt')
 
 def sim_ohlines(
-        wavelengths : np.ndarray,
-        resolution : float,
-        ohlines_file : str,
-    ) -> np.ndarray:
+    wave : np.ndarray,
+    resolution : float,
+) -> np.ndarray:
     """
     Simulate the OH lines.
 
-    Args:
-        wavelengths (np.ndarray): The wavelength array.
-        resolution (float): The spectral resolution.
-        ohlines_file (str): The path to the OH lines file.
+    Parameters
+    ----------
+    wave : np.ndarray
+        The wavelength array.
+    resolution : float
+        The spectral resolution.
 
-    Returns:
-        np.ndarray: The OH spectrum.
+    Returns
+    -------
+    ohspec : np.ndarray
+        The OH spectrum.
     """
 
     # OH spectrum in units of photons / (m^2 * s * micron * arcsec^2)
-    ohspec = np.zeros(len(wavelengths))
+    ohspec = np.zeros(len(wave))
 
     # read OH line file
     # Units are microns
-    line_centers, line_strengths = np.loadtxt(ohlines_file, unpack=True, comments='#')
-    good = np.where((line_centers >= wavelengths[0]) & (line_centers <= wavelengths[-1]) & (line_strengths > 0))[0]
+    ohlines_filepath = _get_ohlines_filepath()
+    line_centers, line_strengths = np.loadtxt(ohlines_filepath, unpack=True, comments='#')
+    good = np.where(
+        (line_centers >= wave[0])
+        & (line_centers <= wave[-1])
+        & (line_strengths > 0)
+    )[0]
     n_good = len(good)
 
     # Build spectrum
     if n_good > 0:
         line_centers, line_strengths = line_centers[good], line_strengths[good]
         for i in range(n_good):
-            ohspec += sim_ohlines_lorenztian(
-                wavelengths, wavecenter=line_centers[i],
-                flux=line_strengths[i], resolution=resolution
+            ohspec += sim_ohline_lorenztian(
+                wave,
+                wavecenter=line_centers[i],
+                flux=line_strengths[i],
+                resolution=resolution
             )
     else:
-        warnings.warn("No OH lines found")
+        warnings.warn(f"No OH lines found for this wavelength range ({wave[0]} - {wave[-1]} microns). Returning zero OH spectrum.")
 
     # Return
     return ohspec
 
 
-def sim_ohlines_lorenztian(
-        wavelengths : np.ndarray, wavecenter : float,
-        flux : float, resolution : float,
-    ):
+def sim_ohline_lorenztian(
+    wave : np.ndarray,
+    wavecenter : float,
+    flux : float,
+    resolution : float,
+):
     """
     Simulate a single OH line with a Lorentzian profile.
 
-    Args:
-        wavelengths (np.ndarray): The wavelength array.
-        wavecenter (float): The center of the line.
-        flux (float): The integrated flux of the line in any units.
-        resolution (float): The spectral resolution.
+    Parameters
+    ----------
+    wave : np.ndarray
+        The wavelength array.
+    wavecenter : float
+        The center of the line.
+    flux : float
+        The integrated flux of the line in any units.
+    resolution : float
+        The spectral resolution.
+
+    Returns
+    -------
+    spec : np.ndarray
+        The simulated OH line spectrum sampled on wave.
+        Output units are photons / (m^2 * s * arcsec^2 * wavebin).
     """
     # flux units: photons / (m^2 * s * arcsec^2)
     fwhm = wavecenter / resolution
-    spec = Lorentz1D(amplitude=1, x_0=wavecenter, fwhm=fwhm)(wavelengths)
+    spec = Lorentz1D(amplitude=1, x_0=wavecenter, fwhm=fwhm)(wave)
     tot = np.sum(spec)
     # Out units = photons / (m^2 * s * arcsec^2 * wavebin)
     spec /= tot
