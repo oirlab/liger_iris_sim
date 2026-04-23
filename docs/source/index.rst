@@ -13,12 +13,12 @@ Installation
    installation
 
 
-Overview
-========
+Quickstart
+==========
 
 .. toctree::
 
-   overview
+   quickstart
 
 
 Examples

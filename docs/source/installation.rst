@@ -45,10 +45,26 @@ It can be specified with the environment variable
 
 The default location is the result of:
 
-..code-block:: python
+.. code-block:: python
 
   from astropy.utils.data import _get_download_cache_loc
   import os
   resource_dir = os.path.join(_get_download_cache_loc(), 'LIGER_IRIS_DRP_RESOURCES')
 
 This will usually be ``~/.astropy/cache/download/url/LIGER_IRIS_DRP_RESOURCES/``.
+
+Required! - Download Resources
+++++++++++++++++++++++++++++++
+
+Download the resources with:
+
+.. code-block:: python
+
+  from liger_iris_drp_resources import download
+  download(
+    filter_trans=True,
+    liger_psfs=True,
+    iris_psfs=False # NOT YET AVAILABLE
+    model_spectra=True
+    skip_if_exists=True
+  )

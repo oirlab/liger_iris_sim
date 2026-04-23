@@ -37,7 +37,7 @@ extensions = [
     'nbsphinx',
 ]
 
-nbsphinx_execute = "always"
+nbsphinx_execute = "never"
 
 napoleon_custom_sections = [
     ('Returns', 'params_style')
