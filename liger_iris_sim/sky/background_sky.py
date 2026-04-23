@@ -30,13 +30,13 @@ def get_maunakea_sky_background(
     resolution : float | None = None,
     T_tel : float = 275, T_atm : float = 258, T_aos : float = 243,
     Em_tel : float = 0.09, Em_atm : float = 0.2, Em_aos : float = 0.01,
-    ohsim : bool = True,
+    include_oh : bool = True,
     airmass : float = 1,
     plate_scale : float | None = None
 ):
-    
-    if resolution is None:
-        resolution = 10_000
+
+    if include_oh and resolution is None:
+        raise ValueError("Must provide resolution if simulating OH lines.")
     
     if wave is None:
         if filter_info is None:
@@ -50,7 +50,7 @@ def get_maunakea_sky_background(
         wave=wave, resolution=resolution,
         T_tel=T_tel, T_atm=T_atm, T_aos=T_aos,
         Em_tel=Em_tel, Em_atm=Em_atm, Em_aos=Em_aos,
-        ohsim=ohsim, plate_scale=plate_scale
+        include_oh=include_oh, plate_scale=plate_scale
     )
     sky_trans = get_maunakea_spectral_sky_transmission(
         wave=wave, resolution=resolution,
@@ -130,7 +130,7 @@ def get_maunakea_spectral_sky_emission(
     resolution : float = None,
     T_tel : float = 275, T_atm : float = 258, T_aos : float = 243,
     Em_tel : float = 0.09, Em_atm : float = 0.2, Em_aos : float = 0.01,
-    ohsim : bool = True,
+    include_oh : bool = True,
     plate_scale : float | None = None
 ) -> dict:
     """
@@ -156,7 +156,7 @@ def get_maunakea_spectral_sky_emission(
         The atmospheric emission coefficient. Defaults to 0.2.
     Em_aos : float, optional
         The AO emission coefficient. Defaults to 0.01.
-    ohsim : bool, optional
+    include_oh : bool, optional
         If True, include the simulated OH lines. Defaults to True.
     plate_scale : float, optional.
         Plate scale in arcsec / pixel (or spaxel). If provided, apply the plate scale correction to convert from per arcsec^2 to per pixel.
@@ -208,7 +208,7 @@ def get_maunakea_spectral_sky_emission(
                 + bbatm * Em_atm
 
     # OH lines: photons / (s * m^2 * arcsec^2 * wavebin)
-    if ohsim:
+    if include_oh:
         ohspec = sim_ohlines(wave, resolution=resolution)
     else:
         ohspec = None
