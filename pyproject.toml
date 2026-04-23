@@ -44,7 +44,9 @@ dependencies = [
   "numpy>=2",
   "astropy>=7.0",
   "scipy",
-  # "matplotlib",
+  "numba",
+  "pandas",
+  "synphot",
   "liger_iris_drp_resources @ git+https://github.com/astrobc1/Liger_IRIS_DRP_Resources"
 ]
 
