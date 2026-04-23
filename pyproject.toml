@@ -50,6 +50,8 @@ dependencies = [
 
 [project.optional-dependencies]
 docs = ["sphinx==8.1.3", "nbsphinx", "pandoc", "sphinx-multiversion", "sphinxawesome-theme"]
+test = ["pytest", "pytest-cov", "pytest-astropy", "nbval"]
+dev = ["nbstripout"]
 
 [project.urls]
 "Documentation" = "https://oirlab.github.io/liger_iris_sim"
