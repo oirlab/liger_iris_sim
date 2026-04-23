@@ -49,7 +49,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-docs = ["sphinx==8.1.3", "nbsphinx", "pandoc", "sphinx-multiversion", "sphinxawesome-theme"]
+docs = ["sphinx==8.1.3", "nbsphinx", "pandoc", "sphinx-multiversion", "sphinxawesome-theme", "matplotlib"]
 test = ["pytest", "pytest-cov", "pytest-astropy", "nbval"]
 dev = ["nbstripout"]
 
