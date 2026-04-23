@@ -21,6 +21,29 @@ def get_psf(
     crop_to_odd_shape : bool = True,
     extend_powerlaw : bool | None = None,
 ) -> tuple[np.ndarray, dict]:
+    """
+    Get the PSF for a given instrument and mode.
+
+    Parameters
+    ----------
+    instrument_name : str
+        The name of the instrument (e.g. 'Liger', 'Iris').
+    instrument_mode : str, optional
+        The instrument mode (e.g. 'img', 'ifs').
+        Not used for Liger.
+    wave : float, optional
+        The wavelength for which to retrieve the PSF.
+    xs, ys : float, optional
+        The spatial offset in arcseconds from the PSF center. Defaults to (0, 0).
+    xdet, ydet : float, optional
+        The detector offset in pixels from the PSF center. Defaults to (0, 0).
+    output_plate_scale : float, optional
+        If provided, the PSF will be resampled to this plate scale in arcsec/pixel.
+    crop_to_odd_shape : bool, optional
+        If True, the output PSF will be cropped to have an odd number of rows and columns. Default is True.
+    extend_powerlaw : bool | None, optional
+        If True, the PSF will be extended with a power-law tail. If None, the PSF will be extended if the instrument is Liger in imaging mode. Default is None.
+    """
     
     # Load the PSF
     inst_name = instrument_name.lower()
