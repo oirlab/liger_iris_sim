@@ -1,11 +1,14 @@
 import numpy as np
 from .convolve import convolve_point_source
 
+import logging
+logger = logging.getLogger(__name__)
+
 __all__ = ['make_point_source_ifs_cube']
 
 # Positions in detector coordinates
 def make_point_source_ifs_cube(
-    xdet : float, ydet : float,
+    xdet : float | np.ndarray, ydet : float | np.ndarray,
     template : tuple[np.ndarray, np.ndarray],
     psf : np.ndarray,
     size : tuple[int, int] | None = None,
@@ -14,12 +17,12 @@ def make_point_source_ifs_cube(
     """
     Parameters
     ----------
-    xdet : float
+    xdet : float | np.ndarray
         The x-coordinate of the point source in detector coordinates.
-    ydet : float
+    ydet : float | np.ndarray
         The y-coordinate of the point source in detector coordinates.
     template : tuple[np.ndarray, np.ndarray]
-        A tuple of (wavelengths, fluxes) for the point source.
+        A tuple of (wavelengths, fluxes) for each point source.
         The wavelengths are in microns and
         The fluxes are in photons / sec / m^2.
     psf : np.ndarray
@@ -40,18 +43,25 @@ def make_point_source_ifs_cube(
     template_wave, template_flux = template
     nw = len(template_wave)
 
-    print(f"Creating IFS cube with point source {xdet=}, {ydet=}, {template_wave[0] - template_wave[1]} microns, num wavelengths {nw}")
-
-    # Output cube in units phot / s / nm / m^2
+    # Output cube in units phot / s / m^2
     if cube_out is None:
-        cube_out = np.zeros(shape=(nw, size[0], size[1]), dtype=float)
+        if size is None:
+            raise ValueError("Either size or cube_out must be provided")
+        cube_out = np.zeros((nw, *size), dtype=np.float32)
+    else:
+        size = cube_out.shape[1:]
 
+    logger.info(f"Creating IFS cube with point source {xdet=}, {ydet=}")
+    
     # Relative to template_flux[0]
-    convolve_point_source(xdet, ydet, template_flux[0], psf, image_out=cube_out[0])
+    convolve_point_source(
+        xdet, ydet, template_flux[0],
+        psf, image_out=cube_out[0]
+    )
 
     # Loop over point sources
     for i in range(1, nw):
-        image_i = cube_out[0] * template_flux[i] / template_flux[0] # Is this correct with convolution?
+        image_i = cube_out[0] * template_flux[i] / template_flux[0]
         cube_out[i, :, :] += image_i
         
     # Return the cube

@@ -123,11 +123,12 @@ def _rebin2d_numba(
 
             output_image[i, j] = s
 
+
 def rebin_image(
     image : np.ndarray,
     scale_in : float | None = None,
     scale_out : float | None = None,
-    fix_odd_shape : bool = False
+    crop_to_odd_shape : bool = False
 ) -> np.ndarray:
     """
     Rebin a 2-D image to a new shape or by a scale factor.
@@ -145,7 +146,7 @@ def rebin_image(
     scale_out : float | None, optional
         Size of output pixels in arcsec/pixel.
         Either new_shape or scales must be provided.
-    fix_odd_shape : bool, optional
+    crop_to_odd_shape : bool, optional
         If True, if the output shape is odd, the last index of each axis is dropped.
         Default is False.
 
@@ -164,19 +165,18 @@ def rebin_image(
     output_image = np.zeros(new_shape, dtype=np.float32)
     _rebin2d_numba(image, output_image)
 
-    if fix_odd_shape:
-        if output_image.shape[0] % 2 == 1:
-            output_image = output_image[:-1, :]
-        if output_image.shape[1] % 2 == 1:
-            output_image = output_image[:, :-1]
+    if crop_to_odd_shape:
+        from .psf_utils import _crop_to_odd_shape
+        output_image = _crop_to_odd_shape(output_image)
 
     return output_image
+
 
 def rebin_image_scipy(
     image: np.ndarray,
     scale_in: float | None = None,
     scale_out: float | None = None,
-    fix_odd_shape: bool = False
+    crop_to_odd_shape: bool = False
 ) -> np.ndarray:
     
     from scipy.ndimage import zoom
@@ -195,10 +195,25 @@ def rebin_image_scipy(
     zoom_factors = (new_shape[0] / image.shape[0], new_shape[1] / image.shape[1])
     output_image = zoom(image, zoom_factors, order=3, mode='nearest', prefilter=True, grid_mode=True)
 
-    if fix_odd_shape:
-        if output_image.shape[0] % 2 == 1:
-            output_image = output_image[:-1, :]
-        if output_image.shape[1] % 2 == 1:
-            output_image = output_image[:, :-1]
-    
+    if crop_to_odd_shape:
+        from .psf_utils import _crop_to_odd_shape
+        output_image = _crop_to_odd_shape(output_image)
+
     return output_image
+
+
+def shift_psf_phase(
+    psf : np.ndarray,
+    dx : float,
+    dy : float
+) -> np.ndarray:
+    """
+    Shift the phase of a PSF image.
+    """
+    from scipy.ndimage import fourier_shift
+    f = np.fft.fftn(psf)
+    f_shifted = fourier_shift(f, shift=(dy, dx))
+    psf_shifted = np.fft.ifftn(f_shifted).real
+    psf_shifted = np.clip(psf_shifted, 0, None)
+    psf_shifted /= psf_shifted.sum()
+    return psf_shifted

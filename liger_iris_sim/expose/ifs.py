@@ -5,12 +5,15 @@ __all__ = ['expose_ifs']
 # SNR
 def expose_ifs(
     source_cube : np.ndarray,
-    itime : float, n_frames : int,
-    collarea : float,
-    sky_emission_rate : np.ndarray,
-    sky_transmission : np.ndarray,
-    tput : float,
-    read_noise : float, dark_current : float, num_detector_pixels : float = 2.0
+    itime : float = 1.0,
+    n_frames : int = 1,
+    collarea : float = 1.0,
+    sky_emission_rate : np.ndarray | float = 0.0,
+    sky_transmission : np.ndarray | float = 1.0,
+    tput : float = 1.0,
+    read_noise : float = 0.0,
+    dark_current : float = 0.0,
+    num_detector_pixels : float = 1.0,
 ) -> dict:
     """
     Parameters
@@ -18,20 +21,24 @@ def expose_ifs(
     source_cube : np.ndarray
         Source cube (wave, y, x). Units are photons / sec / m^2.
     itime : float
-        Integration time (sec).
+        The exposure time in seconds.
+        Default is 1.0 sec.
+    n_frames : int
+        The total number of frames to coadd, each inducing a read noise.
+        Default is 1.
     collarea : float
-        Collimating area (m^2)
-    sky_emission_rate : np.ndarray
-        The sky background emission spectrum sampled on the same wavebins as source_cube
-        in units of photons / sec / m^2.
-        Sky emission is NOT modulated by sky_transmission.
-    sky_transmission : np.ndarray
-        The sky background transmission for each spectrum
-        normalized to [0, 1] for each wavebin. Only affects the source spectrum.
+        The telescope collimating area in units of m^2.
+        Default is 1.0 m^2.
+    sky_emission_rate : float
+        The background sky emission rate in units of photons / sec / m^2 / pixel.
+        Default is 0.0.
     tput : float
-        Total throughput (convert photons -> e-).
-    num_detector_pixels : float
-        The average number of detector pixels that correspond to an IFS voxel.
+        The total throughput of the system. Default is 1.0.
+    read_noise : float
+        The read noise in units of e- RMS. Default is 0.0.
+    dark_current : float
+        The dark current rate in units of e- / sec / pixel.
+        Default is 0.0.
 
     Returns
     -------
@@ -74,20 +81,32 @@ def expose_ifs(
     sky_emission_tot = sky_emission_rate * itime * n_frames
 
     # Sky transmission (e-)
-    source_tot = source_tot * sky_transmission[:, None, None]
+    if isinstance(sky_transmission, np.ndarray):
+        if sky_transmission.ndim == 1:
+            source_tot = source_tot * sky_transmission[:, None, None]
+        elif sky_transmission.ndim == 3:
+            source_tot = source_tot * sky_transmission
+    else:
+        source_tot = source_tot * sky_transmission
 
     # Final simulated image over all frames (e-)
-    sim_tot = source_tot + dark_tot + sky_emission_tot[:, None, None]
+    if isinstance(sky_emission_tot, np.ndarray) and sky_emission_tot.ndim == 1:
+        sky_emission_tot = sky_emission_tot[:, None, None]
+
+    sim_tot = source_tot + dark_tot + sky_emission_tot
 
     # Add poisson noise to final image (e-)
     observed_tot = np.random.poisson(lam=sim_tot, size=sim_tot.shape)
 
     # Total read noise noise contribution over all frames (e-)
-    read_noise_tot = np.random.normal(
-        loc=0,
-        scale=read_noise * np.sqrt(n_frames) * np.sqrt(num_detector_pixels),
-        size=(ny, nx)
-    )
+    if read_noise > 0:
+        read_noise_tot = np.random.normal(
+            loc=0,
+            scale=read_noise * np.sqrt(n_frames) * np.sqrt(num_detector_pixels),
+            size=(ny, nx)
+        )
+    else:
+        read_noise_tot = np.zeros((ny, nx), dtype=np.float32)
 
     # Add read noise to final image
     observed_tot = observed_tot + read_noise_tot[None, :, :]

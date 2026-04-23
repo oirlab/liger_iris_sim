@@ -13,14 +13,14 @@ __all__ = [
 def generate_wave_grid_for_filter(
     filter_info : dict,
     resolution : float,
-    sampling_factor : float = 1
+    sampling_factor : float = 2.0
 ) -> np.ndarray:
     wi = filter_info['wavemin']
     wf = filter_info['wavemax']
     return _generate_wave_grid(wi, wf, resolution, sampling_factor)
 
-def _generate_wave_grid(wi : float, wf : float, resolution : float, sampling_factor : float = 1) -> np.ndarray:
-    dw = wi / resolution / (2 * sampling_factor)
+def _generate_wave_grid(wi : float, wf : float, resolution : float, sampling_factor : float = 2.0) -> np.ndarray:
+    dw = wi / resolution / sampling_factor
     return np.arange(wi, wf + dw, dw)
 
 def compute_filter_zeropoint(filter_wave : np.ndarray, filter_trans : np.ndarray) -> float:

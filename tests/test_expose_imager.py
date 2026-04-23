@@ -1,11 +1,11 @@
 
 from liger_iris_sim.sources import make_point_source_image
-from liger_iris_sim.expose import compute_liger_throughput, expose_imager
-from liger_iris_sim.utils import LIGER_PROPS, rebin_image, compute_filter_photon_flux
+from liger_iris_sim.expose import compute_throughput, expose_imager
+from liger_iris_sim.utils import LIGER_PROPS, compute_filter_photon_flux
 
+from liger_iris_sim.sky import get_maunakea_sky_background
 from liger_iris_drp_resources.filters import load_filters_summary
-from liger_iris_drp_resources.psfs import get_liger_psf, download_liger_psfs
-from liger_iris_drp_resources.model_spectra import download_model_spectra
+from liger_iris_sim.utils import get_psf
 
 import numpy as np
 
@@ -13,12 +13,10 @@ def test_expose_imager():
 
     np.random.seed(1)
 
-    download_liger_psfs()
-    download_model_spectra()
-
     # Atmosphere, instrument, and exposure params
-    mode = 'img' # img, lenslet, slicer
-    filt = 'J'
+    instrument_name = 'Liger'
+    instrument_mode = 'IMG' # img, lenslet, slicer
+    filter_name = 'J'
     size = (512, 512) # Smaller for testing
     read_noise = 9 # e- RMS
     dark_current = 0.025 # e-/sec
@@ -31,27 +29,31 @@ def test_expose_imager():
     collarea = LIGER_PROPS['keck_collarea'] # m^2
 
     # Load filter data
-    filter_info = load_filters_summary(filter_name=filt)
+    filter_info = load_filters_summary(filter_name=filter_name)
+    wavecenter = filter_info['wavecenter']
 
     # Calculate total throughput
-    tput = compute_liger_throughput(
-        mode=mode,
-        wave=filter_info['wavecenter'],
+    tput = compute_throughput(
+        instrument_name=instrument_name,
+        instrument_mode=instrument_mode,
+        wave=wavecenter,
+        filt=filter_name,
     )
-    print(f"Total throughput for {mode} mode: {tput:.3f}")
+    print(f"Total throughput {tput:.3f}")
 
     # Load on axis PSF at this wavelength and bin to match pixel scale
-    psf, psf_info = get_liger_psf(filter_info['wavecenter'], xs=0, ys=0)
-    psf = rebin_image(
-        psf,
-        scale_in=psf_info['psf_sampling'],
-        scale_out=scale
+    psf, psf_info = get_psf(
+        instrument_name=instrument_name,
+        instrument_mode=instrument_mode,
+        wave=wavecenter,
+        xs=0, ys=0,
+        output_plate_scale=scale,
     )
 
     # Point source params
     xpix = size[1] // 2
     ypix = size[0] // 2
-    mag = 15.5
+    mag = 15.5 # Vega mag
     photon_flux = compute_filter_photon_flux(mag, zp=filter_info['zpphot'])
     
     source_rate = np.zeros(size, dtype=np.float32)
@@ -61,19 +63,25 @@ def test_expose_imager():
         image_out=source_rate,
     )
 
-    # Total sky
-    # photons / sec / arcsec^2 / m^2
-    sky_em_rate = compute_filter_photon_flux(filter_info['backmag'], zp=filter_info['zpphot'])
-    # Integrate over 2D pixel (photons / sec / m^2)
-    sky_em_rate *= scale**2
+    # Compute background sky emission and transmission
+    sky_data = get_maunakea_sky_background(
+        filter_info=filter_info,
+        T_tel=275, T_atm=258, T_aos=243, # Default values
+        Em_tel=0.09, Em_atm=0.2, Em_aos=0.01, # Default values
+        airmass=1.4, # Typical value
+        plate_scale=scale,
+    )
+
+    # Total background for imager
+    sky_emission_rate = sky_data['sky_em_rate_bandpass_tot']
 
     # Expose
     sim = expose_imager(
         source_rate,
         itime=itime, n_frames=n_frames, collarea=collarea,
-        sky_emission_rate=sky_em_rate,
+        sky_emission_rate=sky_emission_rate,
         tput=tput, read_noise=read_noise, dark_current=dark_current,
     )
     
     snr_peak = np.nanmax(sim['snr'])
-    assert 130 < snr_peak < 150, f"Expected SNR between 130 and 150, got {snr_peak:.3f}"
+    assert 135 < snr_peak < 145, f"Expected SNR between 135 and 145, got {snr_peak:.3f}"

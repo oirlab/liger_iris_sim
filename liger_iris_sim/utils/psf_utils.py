@@ -1,10 +1,96 @@
 import numpy as np
 from numba import njit
 
+from liger_iris_drp_resources import load_liger_psf, load_iris_psf
+from .resampling import rebin_image
+
 __all__ = [
+    "get_psf",
     "crop_AO_psf",
     "fix_psf_phase",
 ]
+
+
+def get_psf(
+    instrument_name : str,
+    instrument_mode : str | None = None,
+    wave : float | None = None,
+    xs : float | None = None, ys : float | None = None,
+    xdet : float | None = None, ydet : float | None = None,
+    output_plate_scale : float | None = None,
+    crop_to_odd_shape : bool = True,
+    extend_powerlaw : bool | None = None,
+) -> tuple[np.ndarray, dict]:
+    
+    # Load the PSF
+    inst_name = instrument_name.lower()
+    inst_mode = instrument_mode.lower() if instrument_mode is not None else None
+    if inst_name == 'liger':
+        psf, info = load_liger_psf(
+            instrument_mode=instrument_mode,
+            wave=wave,
+            xs=xs, ys=ys,
+            xdet=xdet, ydet=ydet,
+        )
+    elif inst_name == 'iris':
+        psf, info = load_iris_psf(
+            instrument_mode=instrument_mode,
+            wave=wave,
+            xs=xs, ys=ys,
+            xdet=xdet, ydet=ydet,
+        )
+    else:
+        raise ValueError(f"Invalid instrument name: {instrument_name}")
+    
+    # Rebin image to output plate scale
+    input_scale = info['psf_sampling']
+    if output_plate_scale is not None and input_scale != output_plate_scale:
+        psf = rebin_image(
+            psf,
+            scale_in=input_scale,
+            scale_out=output_plate_scale,
+            crop_to_odd_shape=False
+        )
+        info['psf_sampling'] = output_plate_scale
+
+    # Optionally extend the PSF with a power-law tail for Liger
+    if extend_powerlaw is None:
+        extend_powerlaw = inst_name == 'liger' and inst_mode == 'img'
+    if extend_powerlaw:
+        if psf.shape[0] > 100:
+            rmin = 50
+        elif psf.shape[0] > 50:
+            rmin = 25
+        else:
+            rmin = int(0.6 * min(psf.shape) // 2)
+        psf = extend_psf_powerlaw(
+            psf,
+            rmin=rmin,
+            extend_factor=1.5,
+            alpha_min=2.0
+        )
+        #import matplotlib
+        #matplotlib.use("QTAGG")
+        #import matplotlib.pyplot as plt
+        #breakpoint()
+        # psf1 = psf.copy()
+        # psf2 = extend_psf_powerlaw(
+        #     psf,
+        #     rmin=20,
+        #     extend_factor=1.5,
+        #     alpha_min=2.0
+        # )
+        # x1 = np.arange(psf.shape[1]) - psf.shape[1] // 2
+        # x2 = np.arange(psf2.shape[1]) - psf2.shape[1] // 2
+        # plt.plot(x1, np.log(psf1[:, psf1.shape[1]//2]), label='Original PSF')
+        # plt.plot(x2, np.log(psf2[:, psf2.shape[1]//2]), label='Extended PSF')
+        # plt.show()
+
+    # Ensure shape is odd
+    if crop_to_odd_shape:
+        psf = _crop_to_odd_shape(psf)
+
+    return psf, info
 
 
 def crop_AO_psf(
@@ -140,20 +226,129 @@ def fix_psf_phase(psf : np.ndarray) -> np.ndarray:
     return psf
 
 
-def fix_psf_shape(psf : np.ndarray) -> np.ndarray:
+def _crop_to_odd_shape(psf: np.ndarray) -> np.ndarray:
+    ny, nx = psf.shape
+    return psf[:ny - ((ny + 1) % 2), :nx - ((nx + 1) % 2)]
+
+
+def extend_psf_powerlaw(
+    psf: np.ndarray,
+    rmin: float,
+    extend_factor: float = 1.5,
+    blend_width: float = 10.0,
+    alpha_min: float = 2.0,
+    eps: float = 1e-12,
+) -> np.ndarray:
     """
-    Fix even shaped PSFs with padding by extending the edge pixels.
+    Extend a PSF by fitting a power-law to its wings and padding the array.
+
+    Parameters
+    ----------
+    psf : ndarray (ny, nx)
+        Input PSF, assumed centred.
+    rmin : float
+        Radius (px) at which the power-law fit begins and the blend is
+        centred. Should be in the wing regime, beyond the AO-corrected core.
+    extend_factor : float
+        Linear scale factor for the output array (must be > 1).
+    blend_width : float
+        Full radial width (px) of the cosine blend transition centred on
+        rmin. The PSF is used purely inside rmin-blend_width/2; the power
+        law purely outside rmin+blend_width/2; a smooth cosine ramp joins
+        them. Increase if the transition looks abrupt.
+    alpha_min : float
+        Minimum power-law exponent (I ~ r^{-alpha}). AO halos are typically
+        r^{-2} to r^{-3}, so 2.0 is a safe lower bound.
+    eps : float
+        Small floor to avoid log(0).
     """
+    psf = np.asarray(psf, dtype=np.float64)
     ny, nx = psf.shape
 
-    pad_y = 1 if ny % 2 == 0 else 0
-    pad_x = 1 if nx % 2 == 0 else 0
+    if extend_factor <= 1:
+        return psf.copy()
 
-    if pad_y == 0 and pad_x == 0:
-        return psf
+    Ny = int(np.ceil(ny * extend_factor))
+    Nx = int(np.ceil(nx * extend_factor))
+    if Ny % 2 == 0:
+        Ny += 1
+    if Nx % 2 == 0:
+        Nx += 1
 
-    return np.pad(
-        psf,
-        ((0, pad_y), (0, pad_x)),
-        mode='edge'
-    )
+    cy = (ny - 1) / 2.0
+    cx = (nx - 1) / 2.0
+
+    # --- radial profile ---
+    y, x = np.indices(psf.shape)
+    r = np.hypot(x - cx, y - cy)
+    r_int = r.astype(np.int32)
+    r_max = r_int.max()
+
+    sums   = np.bincount(r_int.ravel(), weights=psf.ravel(), minlength=r_max + 1)
+    counts = np.bincount(r_int.ravel(), minlength=r_max + 1)
+    radial = sums / np.maximum(counts, 1)
+    radial = np.maximum(radial, eps)
+
+    # --- fit power-law slope from rmin outward ---
+    rmin_int = int(round(rmin))
+    # r_fit = np.arange(rmin_int, r_max + 1)
+    # r_fit = r_fit[r_fit > 0]
+
+    r_edge = min(cy, cx)  # largest fully-sampled circle inside the array
+
+    r_fit = np.arange(rmin_int, int(r_edge) + 1)
+    r_fit = r_fit[r_fit > 0]
+
+    if len(r_fit) < 2:
+        raise ValueError(
+            f"Too few radial samples to fit: rmin={rmin} (→ {rmin_int}), "
+            f"r_max={r_max}. Reduce rmin or use a larger PSF array."
+        )
+
+    log_r = np.log(r_fit.astype(float))
+    log_I = np.log(radial[r_fit])
+
+    # sigma-clip to exclude bright rings/bumps before fitting
+    residuals = log_I - np.polyfit(log_r, log_I, 1)[0] * log_r
+    mask = np.abs(residuals - residuals.mean()) < 2.5 * residuals.std()
+
+    coeffs = np.polyfit(log_r[mask], log_I[mask], 1)
+    alpha = -coeffs[0]
+
+    # Anchor I0 to the actual PSF at rmin so tail(rmin) == PSF(rmin)
+    ring = psf[r_int == rmin_int]
+    I0 = np.median(ring) if ring.size > 0 else radial[rmin_int]
+
+    # --- build extended grid ---
+    Y, X = np.indices((Ny, Nx))
+    Cy = (Ny - 1) / 2.0
+    Cx = (Nx - 1) / 2.0
+    R = np.hypot(X - Cx, Y - Cy)
+
+    tail = I0 * (np.maximum(R, rmin) / rmin) ** (-alpha)
+
+    # --- paste and blend ---
+    out = tail.copy()
+    y0 = (Ny - ny) // 2
+    x0 = (Nx - nx) // 2
+
+    sub_R = R[y0:y0 + ny, x0:x0 + nx]
+
+    # Cosine blend centred on rmin over blend_width:
+    #   w=1 (pure PSF)   for r < rmin - blend_width/2
+    #   w=0 (pure tail)  for r > rmin + blend_width/2
+    #   smooth cosine ramp in between
+    r_lo = rmin - blend_width / 2.0
+    r_hi = rmin + blend_width / 2.0
+
+    w = np.ones_like(sub_R)
+    ramp = (sub_R >= r_lo) & (sub_R <= r_hi)
+    w[ramp] = 0.5 * (1.0 + np.cos(np.pi * (sub_R[ramp] - r_lo) / blend_width))
+    w[sub_R > r_hi] = 0.0
+
+    out[y0:y0 + ny, x0:x0 + nx] = w * psf + (1.0 - w) * tail[y0:y0 + ny, x0:x0 + nx]
+
+    # Flux normalisation
+    out *= psf.sum() / np.maximum(out.sum(), eps)
+
+    return out

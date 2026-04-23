@@ -1,4 +1,3 @@
-
 __all__ = [
     'iris_imager_to_spatial',
     'iris_skyrel_to_imager',
@@ -23,7 +22,7 @@ IRIS_PROPS = {
 
 def iris_imager_to_spatial(
     xdet : float, ydet : float,
-    scale : float,
+    scale : float = 0.004,
 ) -> tuple[float, float]:
     """
     Convert imager detector coordinates to spatial coordinates.
@@ -35,7 +34,7 @@ def iris_imager_to_spatial(
     ydet : float
         Y coordinate in pixels.
     scale : float
-        Plate scale in arcsec.
+        Plate scale in arcsec. Default is 0.004 arcsec/pixel.
 
     Returns
     -------
@@ -152,3 +151,4 @@ def iris_ifs_to_spatial(
     xs = scale * xdet + xs0
     ys = scale * ydet + ys0
     return ys, xs
+

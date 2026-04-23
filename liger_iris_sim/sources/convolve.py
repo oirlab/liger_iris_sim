@@ -2,6 +2,8 @@ import numpy as np
 import scipy.interpolate
 from astropy.modeling.models import Gaussian1D
 
+from ..utils.resampling import shift_psf_phase
+
 __all__ = ['convolve_point_source', 'convolve_spectrum']
 
 
@@ -10,6 +12,7 @@ def convolve_point_source(
     flux : np.ndarray,
     psf : np.ndarray,
     image_out : np.ndarray,
+    fix_psf_phase : bool = True,
 ) -> np.ndarray:
     """
     Convolve a point source at [y, x] with a PSF.
@@ -26,29 +29,50 @@ def convolve_point_source(
         The PSF to convolve with.
     image_out : np.ndarray
         The output image array to write the result into.
+    fix_psf_phase : bool
+        If True, the PSF is shifted by the subpixel offset of the source.
 
     Returns
     -------
     image_out : np.ndarray
         An image with the convolved point source in the same units as flux.
     """
-    psf_height, psf_width = psf.shape
-    psf_center_x = np.ceil(psf_width / 2) if psf_width % 2 == 1 else psf_width / 2 - 0.5
-    psf_center_y = np.ceil(psf_height / 2) if psf_width % 2 == 1 else psf_height / 2 - 0.5
-    xpsf, ypsf = np.arange(psf_width) - psf_center_x, np.arange(psf_height) - psf_center_y
-    itp = scipy.interpolate.RegularGridInterpolator(
-        (ypsf + y, xpsf + x),
-        psf,
-        method='linear',
-        bounds_error=False,
-        fill_value=0
-    )
-    xarr, yarr = np.arange(image_out.shape[1]), np.arange(image_out.shape[0])
-    XARR, YARR = np.meshgrid(xarr, yarr, indexing='ij')
-    psf_shifted = itp((XARR, YARR))
-    psf_shifted = np.clip(psf_shifted, 0, None)
-    psf_shifted /= np.sum(psf_shifted)
-    image_out += flux * psf_shifted
+    dx = x - np.round(x)
+    dy = y - np.round(y)
+    if (dx != 0 or dy != 0) and fix_psf_phase:
+        psf = shift_psf_phase(psf, dx=dx, dy=dy)
+    
+    psf /= np.sum(psf)
+
+    H, W = image_out.shape
+    ny, nx = psf.shape
+
+    cy = ny // 2
+    cx = nx // 2
+
+    iy = int(np.round(y))
+    ix = int(np.round(x))
+
+    y0 = iy - cy
+    x0 = ix - cx
+    y1 = y0 + ny
+    x1 = x0 + nx
+
+    py0 = max(0, -y0)
+    px0 = max(0, -x0)
+    py1 = ny - max(0, y1 - H)
+    px1 = nx - max(0, x1 - W)
+
+    iy0 = max(0, y0)
+    ix0 = max(0, x0)
+    iy1 = min(H, y1)
+    ix1 = min(W, x1)
+
+    if iy0 >= iy1 or ix0 >= ix1:
+        return image_out
+
+    image_out[iy0:iy1, ix0:ix1] += flux * psf[py0:py1, px0:px1]
+    
     return image_out
 
 def convolve_spectrum(

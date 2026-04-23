@@ -4,9 +4,14 @@ __all__ = ['expose_imager']
 
 def expose_imager(
     source_image : np.ndarray,
-    itime : float, n_frames : int,
-    collarea : float, sky_emission_rate : float, tput : float,
-    read_noise : float, dark_current : float,
+    itime : float = 1.0,
+    n_frames : int = 1,
+    collarea : float = 1.0,
+    sky_emission_rate : float = 0.0,
+    sky_trans_mean : float = 1.0,
+    tput : float = 1.0,
+    read_noise : float = 0.0,
+    dark_current : float = 0.0
 ) -> dict:
     """
     Parameters
@@ -15,18 +20,25 @@ def expose_imager(
         The source image with the correct shape and scale as the final image, in units of photons / sec / m^2.
     itime : float
         The exposure time in seconds.
+        Default is 1.0 sec.
     n_frames : int
         The total number of frames to coadd, each inducing a read noise.
+        Default is 1.
     collarea : float
         The telescope collimating area in units of m^2.
+        Default is 1.0 m^2.
     sky_emission_rate : float
         The background sky emission rate in units of photons / sec / m^2 / pixel.
+        Default is 0.0.
+    sky_trans_mean : float
+        The mean sky transmission. Default is 1.0.
     tput : float
-        The total throughput of the system (top of atmosphere -> detector).
+        The total throughput of the system. Default is 1.0.
     read_noise : float
-        The read noise in units of e- RMS.
+        The read noise in units of e- RMS. Default is 0.0.
     dark_current : float
         The dark current rate in units of e- / sec / pixel.
+        Default is 0.0.
 
     Returns
     -------
@@ -49,9 +61,14 @@ def expose_imager(
 
     """
 
+    ny, nx = source_image.shape
+
     # Integrate over telescope aperture (photons / sec)
     source_rate = source_image * collarea
     sky_em_rate = sky_emission_rate * collarea
+
+    # Source loss from sky transmission
+    source_rate *= sky_trans_mean
 
     # Throughput (effectively converts from photons / sec to e- / s)
     source_rate *= tput
@@ -72,11 +89,14 @@ def expose_imager(
     observed_tot = np.random.poisson(lam=sim_tot, size=sim_tot.shape)
 
     # Total read noise contribution over all frames (e-)
-    read_noise_tot = np.random.normal(
-        loc=0,
-        scale=read_noise * np.sqrt(n_frames),
-        size=observed_tot.shape
-    )
+    if read_noise > 0:
+        read_noise_tot = np.random.normal(
+            loc=0,
+            scale=read_noise * np.sqrt(n_frames),
+            size=observed_tot.shape
+        )
+    else:
+        read_noise_tot = np.zeros((ny, nx), dtype=np.float32)
 
     # Add read noise to final image
     observed_tot = observed_tot + read_noise_tot
