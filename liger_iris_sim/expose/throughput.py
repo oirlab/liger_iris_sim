@@ -5,6 +5,7 @@ from numbers import Number
 
 __all__ = [
     'compute_throughput',
+    'get_filter_throughput'
 ]
 
 def _compute_throughput(
@@ -14,23 +15,23 @@ def _compute_throughput(
 
 
 def compute_throughput(
-    instrument_name : str,
-    instrument_mode : str,
-    wave : float,
+    instrument_name : str | None = None,
+    instrument_mode : str | None = None,
+    wave : float | None = None,
     ifs_mode : str | None = None,
     instrument_only : bool = False,
-    tel : float = 0.8, ao : float = 0.65, filt : float | str = None,
+    tel : float = 0.8, ao : float = 0.65, filt : float | str = None, inst : float | None = None
 ) -> float:
     """
     Compute the total throughput for the given mode and wavelength.
 
     Parameters
     ----------
-    instrument_name : str
+    instrument_name : str | None
         The instrument name ('Liger' or 'IRIS').
-    instrument_mode : str
+    instrument_mode : str | None
         The mode ('img', 'ifs').
-    wave : float
+    wave : float | None
         The wavelength in microns.
     ifs_mode : str | None
         The IFS mode ('slicer', 'lenslet') if mode is 'ifs'.
@@ -44,12 +45,20 @@ def compute_throughput(
     filt : float | str
         The filter throughput. Default is the maximum filter throughput.
     """
-    waves_tput, inst_tput = load_throughputs(
-        instrument_name=instrument_name,
-        instrument_mode=instrument_mode,
-        ifs_mode=ifs_mode
-    )
-    _inst_tput = np.interp(wave, waves_tput, inst_tput)
+
+    if inst is not None:
+        _inst_tput = inst
+    else:
+        waves_tput, inst_tput = load_throughputs(
+            instrument_name=instrument_name,
+            instrument_mode=instrument_mode,
+            ifs_mode=ifs_mode
+        )
+        _inst_tput = np.interp(wave, waves_tput, inst_tput)
+
+    # Instrument-only throughput or total throughput
+    if instrument_only:
+        return _inst_tput
 
     # Get the filter throughput at this wavelength if not provided
     if isinstance(filt, str):
@@ -57,11 +66,7 @@ def compute_throughput(
     elif filt is None:
         raise ValueError("Filter throughput must be provided as a float or filter name string")
 
-    # Instrument-only throughput or total throughput
-    if instrument_only:
-        return _inst_tput
-    else:
-        return _compute_throughput(inst=_inst_tput, tel=tel, ao=ao, filt=filt)
+    return _compute_throughput(inst=_inst_tput, tel=tel, ao=ao, filt=filt)
 
 
 def get_filter_throughput(
