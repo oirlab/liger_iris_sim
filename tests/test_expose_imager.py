@@ -65,6 +65,7 @@ def test_expose_imager():
 
     # Compute background sky emission and transmission
     sky_data = get_maunakea_sky_background(
+        resolution=10_000,
         filter_info=filter_info,
         T_tel=275, T_atm=258, T_aos=243, # Default values
         Em_tel=0.09, Em_atm=0.2, Em_aos=0.01, # Default values

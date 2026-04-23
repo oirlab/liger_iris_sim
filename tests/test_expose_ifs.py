@@ -67,6 +67,7 @@ def test_expose_ifs():
     sky_data = get_maunakea_sky_background(
         wave=wave,
         filter_info=filter_info,
+        resolution=resolution,
         T_tel=275, T_atm=258, T_aos=243, # Default values
         Em_tel=0.09, Em_atm=0.2, Em_aos=0.01, # Default values
         airmass=1.4, # Typical value
