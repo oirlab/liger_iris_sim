@@ -12,9 +12,10 @@ __all__ = [
     "get_psf_interp",
     "crop_AO_psf",
     "shift_psf_phase",
+    "extend_psf_powerlaw",
 ]
 
-# PSF grid constants (derived from liger_iris_drp_resources)
+# PSF grid constants (from liger_iris_drp_resources)
 _LIGER_PSF_WAVE_GRID = np.array([1.02, 1.248, 1.65, 2.124])           # µm  (Y/J/H/K)
 _LIGER_PSF_SPAT_GRID = np.array([-15., -10., -5., 0., 5., 10., 15.])  # arcsec
 _IRIS_PSF_SPAT_GRID_IMG = np.array([0.6, 4.7, 8.8, 12.9, 17.0])       # arcsec
