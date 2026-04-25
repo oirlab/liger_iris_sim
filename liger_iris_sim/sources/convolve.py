@@ -2,7 +2,7 @@ import numpy as np
 import scipy.interpolate
 from astropy.modeling.models import Gaussian1D
 
-from ..utils.resampling import shift_psf_phase
+from ..utils.psf_utils import shift_psf_phase
 
 __all__ = ['convolve_point_source', 'convolve_spectrum']
 
@@ -41,11 +41,13 @@ def convolve_point_source(
     dy = y - np.round(y)
     if (dx != 0 or dy != 0) and fix_psf_phase:
         psf = shift_psf_phase(psf, dx=dx, dy=dy)
-    
-    psf /= np.sum(psf)
+    else:
+        psf = psf / np.sum(psf)
 
     H, W = image_out.shape
     ny, nx = psf.shape
+
+    assert ny % 2 == 1 and nx % 2 == 1, "PSF must have odd dimensions"
 
     cy = ny // 2
     cx = nx // 2
