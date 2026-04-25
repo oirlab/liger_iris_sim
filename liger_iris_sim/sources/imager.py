@@ -11,7 +11,8 @@ __all__ = ['make_point_source_image']
 def make_point_source_image(
     xdet : float | np.ndarray, ydet : float | np.ndarray,
     flux : float | np.ndarray,
-    psf : np.ndarray,
+    psf : np.ndarray | list[np.ndarray],
+    psf_indices : np.ndarray | None = None,
     size : tuple[int, int] | None = None,
     image_out : np.ndarray | None = None,
     peak_flux : bool = False,
@@ -27,10 +28,13 @@ def make_point_source_image(
         The y (vertical, first axis) position of the source in detector pixels.
     flux : float | np.ndarray
         The source flux in any units.
-    psf : np.ndarray
+    psf : np.ndarray | list[np.ndarray]
         The PSF image for each source.
         The PSF can be of arbitrary size but must be on the correct scale,
         and is assumed to be centered in the image.
+        Optionally, a list of PSFs can be provided, in which case each source will be convolved with the corresponding PSF in the list.
+    psf_indices : np.ndarray | None, optional
+        If psf is a list of PSFs, this array gives the index of each point source in the psf list.
     size : tuple[int, int] | None = None
         The output image shape. Either size or image_out must be provided.
     image_out : np.ndarray | None
@@ -56,31 +60,37 @@ def make_point_source_image(
     else:
         size = image_out.shape
 
-    psf /= np.sum(psf)
-    psf_max = np.max(psf)
-
-    if peak_flux:
-        flux_tot = flux / psf_max
-    else:
-        flux_tot = flux
-
-    def to_arry(x):
+    def to_array(x):
         if isinstance(x, Number):
             return np.array([x])
         else:
             return np.asarray(x)
         
-    xdet = to_arry(xdet)
-    ydet = to_arry(ydet)
-    flux_tot = to_arry(flux_tot)
+    if isinstance(psf, list):
+        if psf_indices is None:
+            raise ValueError("psf_indices must be provided if psf is a list")
+        
+    xdet = to_array(xdet)
+    ydet = to_array(ydet)
+    flux = to_array(flux)
 
     n_sources = len(xdet)
     for i in range(n_sources):
+        if isinstance(psf, list):
+            _psf = psf[psf_indices[i]]
+        else:
+            _psf = psf
+
+        if peak_flux:
+            flux_tot = flux[i] / np.max(_psf)
+        else:
+            flux_tot = flux[i]
+
         convolve_point_source(
             xdet[i],
             ydet[i],
-            flux_tot[i],
-            psf,
+            flux_tot,
+            _psf,
             image_out=image_out,
         )
 

@@ -1,14 +1,135 @@
+from matplotlib import axes
 import numpy as np
 from numba import njit
 
 from liger_iris_drp_resources import load_liger_psf, load_iris_psf
+from liger_iris_drp_resources.psfs import _get_liger_psf_filename, _get_iris_psf_filename
 from .resampling import rebin_image
 
 __all__ = [
+    "get_psfs",
     "get_psf",
     "crop_AO_psf",
-    "fix_psf_phase",
+    "shift_psf_phase",
 ]
+
+def get_psfs(
+    instrument_name : str,
+    instrument_mode : str | None = None,
+    wave : float | None = None,
+    xs : float | None = None, ys : float | None = None,
+    xdet : float | None = None, ydet : float | None = None,
+    output_plate_scale : float | None = None,
+    crop_to_odd_shape : bool = True,
+    extend_powerlaw : bool | None = None,
+) -> tuple[np.ndarray, dict]:
+    """
+    Get the PSF for a given instrument and mode.
+
+    Parameters
+    ----------
+    instrument_name : str
+        The name of the instrument (e.g. 'Liger', 'Iris').
+    instrument_mode : str, optional
+        The instrument mode (e.g. 'img', 'ifs').
+        Not used for Liger.
+    wave : float, optional
+        The wavelength for which to retrieve the PSF.
+    xs, ys : np.ndarray, optional
+        The spatial offset in arcseconds from the PSF center. Defaults to (0, 0).
+    xdet, ydet : np.ndarray, optional
+        The detector offset in pixels from the PSF center. Defaults to (0, 0).
+    output_plate_scale : float, optional
+        If provided, the PSF will be resampled to this plate scale in arcsec/pixel.
+    crop_to_odd_shape : bool, optional
+        If True, the output PSF will be cropped to have an odd number of rows and columns. Default is True.
+    extend_powerlaw : bool | None, optional
+        If True, the PSF will be extended with a power-law tail. If None, the PSF will be extended if the instrument is Liger in imaging mode. Default is None.
+    """
+    
+    # Load the PSF
+    inst_name = instrument_name.lower()
+    inst_mode = instrument_mode.lower() if instrument_mode is not None else None
+    psfs = []
+    infos = []
+    indices = np.empty(len(xdet), dtype=int)
+    key_to_index = {}
+    if inst_name == 'liger':
+        for i in range(len(xdet)):
+            filename, hdunum = _get_liger_psf_filename(
+                instrument_mode=inst_mode,
+                wave=wave,
+                xs=xs, ys=ys,
+                xdet=xdet[i], ydet=ydet[i],
+            )
+            key = (filename, hdunum)
+            if key not in key_to_index:
+                idx = len(psfs)
+                psf, info = get_psf(
+                    instrument_name=instrument_name,
+                    instrument_mode=instrument_mode,
+                    wave=wave,
+                    xs=xs, ys=ys,
+                    xdet=xdet[i], ydet=ydet[i],
+                    crop_to_odd_shape=crop_to_odd_shape,
+                    extend_powerlaw=extend_powerlaw,
+                )
+
+                key_to_index[key] = idx
+                psfs.append(psf)
+                infos.append(info)
+
+            else:
+                idx = key_to_index[key]
+
+            indices[i] = idx
+    elif inst_name == 'iris':
+        for i in range(len(xdet)):
+            filename, hdunum = _get_iris_psf_filename(
+                instrument_mode=inst_mode,
+                wave=wave,
+                xs=xs, ys=ys,
+                xdet=xdet[i], ydet=ydet[i],
+            )
+
+            key = (filename, hdunum)
+
+            if key not in key_to_index:
+                idx = len(psfs)
+
+                psf, info = get_psf(
+                    instrument_name=instrument_name,
+                    instrument_mode=instrument_mode,
+                    wave=wave,
+                    xs=xs, ys=ys,
+                    xdet=xdet[i], ydet=ydet[i],
+                    crop_to_odd_shape=crop_to_odd_shape,
+                    extend_powerlaw=extend_powerlaw,
+                )
+
+                key_to_index[key] = idx
+                psfs.append(psf)
+                infos.append(info)
+            else:
+                idx = key_to_index[key]
+
+            indices[i] = idx
+        
+    else:
+        raise ValueError(f"Invalid instrument name: {instrument_name}")
+    
+    # Rebin image to output plate scale
+    input_scale = info['psf_sampling']
+    if output_plate_scale is not None and input_scale != output_plate_scale:
+        psf = rebin_image(
+            psf,
+            scale_in=input_scale,
+            scale_out=output_plate_scale,
+            crop_to_odd_shape=False
+        )
+        info['psf_sampling'] = output_plate_scale
+
+    return psfs, infos, indices
 
 
 def get_psf(
@@ -116,6 +237,24 @@ def get_psf(
     return psf, info
 
 
+def shift_psf_phase(
+    psf : np.ndarray,
+    dx : float,
+    dy : float
+) -> np.ndarray:
+    """
+    Shift the phase of a PSF image.
+    """
+    from scipy.ndimage import fourier_shift
+    f = np.fft.fftn(psf)
+    f_shifted = fourier_shift(f, shift=(dy, dx))
+    axes = tuple(range(psf.ndim))
+    psf_shifted = np.fft.irfftn(f_shifted, s=psf.shape, axes=axes).real
+    psf_shifted = np.clip(psf_shifted, 0, None)
+    psf_shifted /= psf_shifted.sum()
+    return psf_shifted
+
+
 def crop_AO_psf(
     psf : np.ndarray,
     scale : float,
@@ -194,59 +333,6 @@ def crop_AO_psf(
 
     # Return
     return psf_out
-
-@njit
-def _bilinear_shift(psf, dy, dx):
-    h, w = psf.shape
-    i = np.arange(h)
-    j = np.arange(w)
-    i0 = np.clip(np.floor(i - dy).astype(np.int64), 0, h - 2)
-    j0 = np.clip(np.floor(j - dx).astype(np.int64), 0, w - 2)
-
-    out = np.zeros_like(psf, dtype=np.float32)
-    for y in range(h):
-        for x in range(w):
-            iy = i0[y]
-            ix = j0[x]
-
-            wy = (y - iy - dy)
-            wx = (x - ix - dx)
-
-            # Weights and bounds
-            w00 = (1 - wy) * (1 - wx)
-            w10 = wy * (1 - wx)
-            w01 = (1 - wy) * wx
-            w11 = wy * wx
-
-            if 0 <= iy < h-1 and 0 <= ix < w-1:
-                out[y, x] = (
-                    psf[iy, ix]     * w00 +
-                    psf[iy+1, ix]   * w10 +
-                    psf[iy, ix+1]   * w01 +
-                    psf[iy+1, ix+1] * w11
-                )
-    return out
-
-
-def fix_psf_phase(psf : np.ndarray) -> np.ndarray:
-    """
-    If the shape of the PSF has an even number of rows or columns,
-    it is shifted by half a pixel in both directions using bilinear
-    interpolation to ensure the central peak is centered on a pixel.
-
-    Parameters
-    ----------
-    psf : np.ndarray
-        The PSF to fix.
-
-    Returns
-    -------
-    psf_out : np.ndarray
-        The fixed PSF.
-    """
-    psf = _bilinear_shift(psf, dy=0.5, dx=0.5)
-    psf /= np.sum(psf)
-    return psf
 
 
 def _crop_to_odd_shape(psf: np.ndarray) -> np.ndarray:

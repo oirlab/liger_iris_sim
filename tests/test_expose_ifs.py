@@ -77,9 +77,10 @@ def test_expose_ifs():
     # Input cube of one star
     input_cube_rate = np.zeros((len(wave), *size), dtype=np.float32)
     template_spec = base_template / np.sum(base_template) * photon_flux # photons / sec / m^2
-    template = (wave, template_spec)
     make_point_source_ifs_cube(
-        xpix, ypix, template,
+        ydet=xpix, xdet=ypix,
+        wave=wave,
+        template=template_spec,
         psf=psf,
         cube_out=input_cube_rate,
     )
