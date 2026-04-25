@@ -201,19 +201,3 @@ def rebin_image_scipy(
 
     return output_image
 
-
-def shift_psf_phase(
-    psf : np.ndarray,
-    dx : float,
-    dy : float
-) -> np.ndarray:
-    """
-    Shift the phase of a PSF image.
-    """
-    from scipy.ndimage import fourier_shift
-    f = np.fft.fftn(psf)
-    f_shifted = fourier_shift(f, shift=(dy, dx))
-    psf_shifted = np.fft.ifftn(f_shifted).real
-    psf_shifted = np.clip(psf_shifted, 0, None)
-    psf_shifted /= psf_shifted.sum()
-    return psf_shifted
