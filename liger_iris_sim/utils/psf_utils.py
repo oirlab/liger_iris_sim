@@ -73,6 +73,7 @@ def get_psfs(
                     xdet=xdet[i], ydet=ydet[i],
                     crop_to_odd_shape=crop_to_odd_shape,
                     extend_powerlaw=extend_powerlaw,
+                    output_plate_scale=output_plate_scale,
                 )
 
                 key_to_index[key] = idx
@@ -105,6 +106,7 @@ def get_psfs(
                     xdet=xdet[i], ydet=ydet[i],
                     crop_to_odd_shape=crop_to_odd_shape,
                     extend_powerlaw=extend_powerlaw,
+                    output_plate_scale=output_plate_scale,
                 )
 
                 key_to_index[key] = idx
