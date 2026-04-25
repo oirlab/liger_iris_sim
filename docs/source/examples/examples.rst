@@ -20,3 +20,4 @@ IFS
 
    sim_stars_liger_ifs
    sim_galz1halpha_liger_ifs
+   sim_velmap_stars_liger_ifs
