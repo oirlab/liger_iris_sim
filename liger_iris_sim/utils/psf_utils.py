@@ -9,9 +9,15 @@ from .resampling import rebin_image
 __all__ = [
     "get_psfs",
     "get_psf",
+    "get_psf_interp",
     "crop_AO_psf",
     "shift_psf_phase",
 ]
+
+# PSF grid constants (derived from liger_iris_drp_resources)
+_LIGER_PSF_WAVE_GRID = np.array([1.02, 1.248, 1.65, 2.124])           # µm  (Y/J/H/K)
+_LIGER_PSF_SPAT_GRID = np.array([-15., -10., -5., 0., 5., 10., 15.])  # arcsec
+_IRIS_PSF_SPAT_GRID_IMG = np.array([0.6, 4.7, 8.8, 12.9, 17.0])       # arcsec
 
 def get_psfs(
     instrument_name : str,
@@ -239,6 +245,206 @@ def get_psf(
     return psf, info
 
 
+def get_psf_interp(
+    instrument_name: str,
+    instrument_mode: str | None = None,
+    wave: float | None = None,
+    xs: float | None = None, ys: float | None = None,
+    xdet: float | None = None, ydet: float | None = None,
+    output_plate_scale: float | None = None,
+    crop_to_odd_shape: bool = True,
+    extend_powerlaw: bool | None = None,
+    interp_wave: bool = True,
+    interp_spat: bool = True,
+) -> tuple[np.ndarray, dict]:
+    """
+    Get an interpolated PSF for a given instrument and mode.
+
+    Unlike ``get_psf()``, which snaps to the nearest grid point, this function
+    linearly interpolates in wavelength (``interp_wave=True``) and/or
+    bilinearly in the spatial dimension (``interp_spat=True``) between the
+    available PSF grid points.  Spatial interpolation is a no-op for IFS mode
+    (single on-axis PSF).
+
+    Parameters
+    ----------
+    instrument_name : str
+        'Liger' or 'Iris'.
+    instrument_mode : str, optional
+        'img' or 'ifs'.
+    wave : float, optional
+        Wavelength in µm.
+    xs, ys : float, optional
+        Sky offset in arcseconds.
+    xdet, ydet : float, optional
+        Detector pixel offset (converted to arcsec internally).
+    output_plate_scale : float
+        Resample all grid PSFs to this plate scale in arcsec/pixel before
+        interpolating. Required (cannot be None).
+    crop_to_odd_shape : bool
+        Crop output to an odd shape. Default True.
+    extend_powerlaw : bool | None
+        Extend the PSF with a power-law halo (see ``get_psf`` for details).
+    interp_wave : bool
+        Interpolate linearly in wavelength between grid points. Default True.
+    interp_spat : bool
+        Interpolate bilinearly in (xs, ys) between grid points. Default True.
+
+    Returns
+    -------
+    psf : np.ndarray
+        Interpolated PSF (float32), normalised to unit sum.
+    info : dict
+        Metadata from the dominant contributing grid PSF.
+    """
+    if output_plate_scale is None:
+        raise ValueError("output_plate_scale is required for get_psf_interp.")
+
+    inst_name = instrument_name.lower()
+    inst_mode = instrument_mode.lower() if instrument_mode is not None else None
+
+    # ------------------------------------------------------------------
+    # Resolve xs/ys
+    # ------------------------------------------------------------------
+    if inst_mode == 'ifs':
+        xs, ys = 0.0, 0.0
+    else:
+        if xdet is not None and ydet is not None and xs is None:
+            det_scale = 0.01 if inst_name == 'liger' else 0.004  # arcsec/pixel
+            xs = det_scale * float(xdet)
+            ys = det_scale * float(ydet)
+        if xs is None:
+            xs, ys = 0.0, 0.0
+
+    # ------------------------------------------------------------------
+    # Instrument-specific grids
+    # ------------------------------------------------------------------
+    if inst_name == 'liger':
+        wave_grid = _LIGER_PSF_WAVE_GRID
+        spat_grid = _LIGER_PSF_SPAT_GRID
+    elif inst_name == 'iris':
+        spat_grid = _IRIS_PSF_SPAT_GRID_IMG if inst_mode == 'img' else None
+        wave_grid = None  # read from FITS HDUs below
+    else:
+        raise ValueError(f"Invalid instrument name: {instrument_name}")
+
+    # For IRIS, derive the wavelength grid from the FITS file's HDU headers.
+    if inst_name == 'iris' and interp_wave and wave is not None:
+        from liger_iris_drp_resources.psfs import (
+            _get_iris_psf_dir,
+            _get_iris_psf_filename,
+            _parse_iris_psf_header,
+        )
+        from astropy.io import fits as _fits
+        import os as _os
+        xs_snap = (
+            spat_grid[np.argmin(np.abs(spat_grid - xs))]
+            if inst_mode == 'img' else 0.0
+        )
+        ys_snap = (
+            spat_grid[np.argmin(np.abs(spat_grid - ys))]
+            if inst_mode == 'img' else 0.0
+        )
+        iris_fp = _os.path.join(
+            _get_iris_psf_dir(),
+            _get_iris_psf_filename(instrument_mode=inst_mode, xs=xs_snap, ys=ys_snap),
+        )
+        with _fits.open(iris_fp) as hdul:
+            wave_grid = np.array([
+                _parse_iris_psf_header(hdul[i].header)['wavelength']
+                for i in range(len(hdul))
+            ])
+
+    # ------------------------------------------------------------------
+    # Compute 1-D linear interpolation weights
+    # ------------------------------------------------------------------
+    def _linear_weights(grid, val):
+        """Return [(grid_value, weight), ...] for linear interpolation."""
+        if grid is None or val is None:
+            return [(val, 1.0)]
+        val = float(val)
+        if val <= grid[0]:
+            return [(grid[0], 1.0)]
+        if val >= grid[-1]:
+            return [(grid[-1], 1.0)]
+        idx = int(np.searchsorted(grid, val))
+        g0, g1 = grid[idx - 1], grid[idx]
+        t = (val - g0) / (g1 - g0)
+        return [(g0, 1.0 - t), (g1, t)]
+
+    wave_w = _linear_weights(wave_grid, wave) if interp_wave else [(wave, 1.0)]
+    if interp_spat and inst_mode != 'ifs' and spat_grid is not None:
+        xs_w = _linear_weights(spat_grid, xs)
+        ys_w = _linear_weights(spat_grid, ys)
+    else:
+        xs_w = [(xs, 1.0)]
+        ys_w = [(ys, 1.0)]
+
+    # ------------------------------------------------------------------
+    # Load required PSFs (deduplicated)
+    # If output_plate_scale is not given, the first loaded PSF's native
+    # psf_sampling is used as the common scale for all subsequent loads,
+    # so all PSFs are on the same pixel grid before blending.
+    # ------------------------------------------------------------------
+    psf_cache: dict = {}
+
+    def _load(xi, yi, wi):
+        key = (
+            round(float(xi), 6) if xi is not None else None,
+            round(float(yi), 6) if yi is not None else None,
+            round(float(wi), 8) if wi is not None else None,
+        )
+        if key not in psf_cache:
+            psf_cache[key] = get_psf(
+                instrument_name=instrument_name,
+                instrument_mode=instrument_mode,
+                wave=wi,
+                xs=xi, ys=yi,
+                output_plate_scale=output_plate_scale,
+                crop_to_odd_shape=False,
+                extend_powerlaw=extend_powerlaw,
+            )
+        return psf_cache[key]
+
+    # ------------------------------------------------------------------
+    # Accumulate weighted PSFs
+    # ------------------------------------------------------------------
+    contributions: list[tuple[float, np.ndarray, dict]] = []
+    for xi, wx in xs_w:
+        for yi, wy in ys_w:
+            for wi, ww in wave_w:
+                weight = wx * wy * ww
+                if weight < 1e-14:
+                    continue
+                psf_i, info_i = _load(xi, yi, wi)
+                contributions.append((weight, psf_i, info_i))
+
+    # ------------------------------------------------------------------
+    # Pad all PSFs to a common (largest) odd shape, then blend
+    # ------------------------------------------------------------------
+    max_ny = max(p.shape[0] for _, p, _ in contributions)
+    max_nx = max(p.shape[1] for _, p, _ in contributions)
+    if max_ny % 2 == 0:
+        max_ny += 1
+    if max_nx % 2 == 0:
+        max_nx += 1
+
+    psf_out = np.zeros((max_ny, max_nx), dtype=np.float64)
+    for weight, psf_i, _ in contributions:
+        psf_out += weight * _pad_psf_to_shape(psf_i, (max_ny, max_nx))
+
+    s = psf_out.sum()
+    if s > 0:
+        psf_out /= s
+
+    ref_info = max(contributions, key=lambda t: t[0])[2]
+
+    if crop_to_odd_shape:
+        psf_out = _crop_to_odd_shape(psf_out)
+
+    return psf_out.astype(np.float32), ref_info
+
+
 def shift_psf_phase(
     psf : np.ndarray,
     dx : float,
@@ -340,6 +546,15 @@ def crop_AO_psf(
 def _crop_to_odd_shape(psf: np.ndarray) -> np.ndarray:
     ny, nx = psf.shape
     return psf[:ny - ((ny + 1) % 2), :nx - ((nx + 1) % 2)]
+
+
+def _pad_psf_to_shape(psf: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+    """Zero-pad a PSF to *shape*, keeping it centred."""
+    out = np.zeros(shape, dtype=np.float64)
+    y_off = (shape[0] - psf.shape[0]) // 2
+    x_off = (shape[1] - psf.shape[1]) // 2
+    out[y_off:y_off + psf.shape[0], x_off:x_off + psf.shape[1]] = psf
+    return out
 
 
 def extend_psf_powerlaw(
