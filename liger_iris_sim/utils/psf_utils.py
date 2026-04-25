@@ -118,16 +118,16 @@ def get_psfs(
     else:
         raise ValueError(f"Invalid instrument name: {instrument_name}")
     
-    # Rebin image to output plate scale
-    input_scale = info['psf_sampling']
-    if output_plate_scale is not None and input_scale != output_plate_scale:
-        psf = rebin_image(
-            psf,
-            scale_in=input_scale,
-            scale_out=output_plate_scale,
-            crop_to_odd_shape=False
-        )
-        info['psf_sampling'] = output_plate_scale
+    # # Rebin image to output plate scale
+    # input_scale = info['psf_sampling']
+    # if output_plate_scale is not None and input_scale != output_plate_scale:
+    #     psf = rebin_image(
+    #         psf,
+    #         scale_in=input_scale,
+    #         scale_out=output_plate_scale,
+    #         crop_to_odd_shape=False
+    #     )
+    #     info['psf_sampling'] = output_plate_scale
 
     return psfs, infos, indices
 
