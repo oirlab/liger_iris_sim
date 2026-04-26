@@ -85,4 +85,4 @@ def test_expose_imager():
     )
     
     snr_peak = np.nanmax(sim['snr'])
-    assert 135 < snr_peak < 145, f"Expected SNR between 135 and 145, got {snr_peak:.3f}"
+    assert 140 < snr_peak < 150, f"Expected SNR between 140 and 150, got {snr_peak:.3f}"

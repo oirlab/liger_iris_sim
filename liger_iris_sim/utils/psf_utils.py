@@ -27,7 +27,7 @@ def get_psfs(
     xs : float | None = None, ys : float | None = None,
     xdet : float | None = None, ydet : float | None = None,
     output_plate_scale : float | None = None,
-    crop_to_odd_shape : bool = True,
+    recenter_to_odd_shape : bool = True,
     extend_powerlaw : bool | None = None,
 ) -> tuple[np.ndarray, dict]:
     """
@@ -48,8 +48,8 @@ def get_psfs(
         The detector offset in pixels from the PSF center. Defaults to (0, 0).
     output_plate_scale : float, optional
         If provided, the PSF will be resampled to this plate scale in arcsec/pixel.
-    crop_to_odd_shape : bool, optional
-        If True, the output PSF will be cropped to have an odd number of rows and columns. Default is True.
+    recenter_to_odd_shape : bool, optional
+        If True, the output PSF will be recentered to have an odd number of rows and columns. Default is True.
     extend_powerlaw : bool | None, optional
         If True, the PSF will be extended with a power-law tail. If None, the PSF will be extended if the instrument is Liger in imaging mode. Default is None.
     """
@@ -78,7 +78,7 @@ def get_psfs(
                     wave=wave,
                     xs=xs, ys=ys,
                     xdet=xdet[i], ydet=ydet[i],
-                    crop_to_odd_shape=crop_to_odd_shape,
+                    recenter_to_odd_shape=recenter_to_odd_shape,
                     extend_powerlaw=extend_powerlaw,
                     output_plate_scale=output_plate_scale,
                 )
@@ -111,7 +111,7 @@ def get_psfs(
                     wave=wave,
                     xs=xs, ys=ys,
                     xdet=xdet[i], ydet=ydet[i],
-                    crop_to_odd_shape=crop_to_odd_shape,
+                    recenter_to_odd_shape=recenter_to_odd_shape,
                     extend_powerlaw=extend_powerlaw,
                     output_plate_scale=output_plate_scale,
                 )
@@ -134,7 +134,7 @@ def get_psfs(
     #         psf,
     #         scale_in=input_scale,
     #         scale_out=output_plate_scale,
-    #         crop_to_odd_shape=False
+    #         recenter_to_odd_shape=False
     #     )
     #     info['psf_sampling'] = output_plate_scale
 
@@ -148,7 +148,7 @@ def get_psf(
     xs : float | None = None, ys : float | None = None,
     xdet : float | None = None, ydet : float | None = None,
     output_plate_scale : float | None = None,
-    crop_to_odd_shape : bool = True,
+    recenter_to_odd_shape : bool = True,
     extend_powerlaw : bool | None = None,
 ) -> tuple[np.ndarray, dict]:
     """
@@ -169,8 +169,8 @@ def get_psf(
         The detector offset in pixels from the PSF center. Defaults to (0, 0).
     output_plate_scale : float, optional
         If provided, the PSF will be resampled to this plate scale in arcsec/pixel.
-    crop_to_odd_shape : bool, optional
-        If True, the output PSF will be cropped to have an odd number of rows and columns. Default is True.
+    recenter_to_odd_shape : bool, optional
+        If True, the output PSF will be recentered to have an odd number of rows and columns. Default is True.
     extend_powerlaw : bool | None, optional
         If True, the PSF will be extended with a power-law tail. If None, the PSF will be extended if the instrument is Liger in imaging mode. Default is None.
     """
@@ -202,7 +202,7 @@ def get_psf(
             psf,
             scale_in=input_scale,
             scale_out=output_plate_scale,
-            crop_to_odd_shape=False
+            recenter_to_odd_shape=recenter_to_odd_shape,
         )
         info['psf_sampling'] = output_plate_scale
 
@@ -240,8 +240,8 @@ def get_psf(
         # plt.show()
 
     # Ensure shape is odd
-    if crop_to_odd_shape:
-        psf = _crop_to_odd_shape(psf)
+    if recenter_to_odd_shape:
+        psf = _recenter_psf_to_odd_shape(psf)
 
     return psf, info
 
@@ -253,7 +253,7 @@ def get_psf_interp(
     xs: float | None = None, ys: float | None = None,
     xdet: float | None = None, ydet: float | None = None,
     output_plate_scale: float | None = None,
-    crop_to_odd_shape: bool = True,
+    recenter_to_odd_shape: bool = True,
     extend_powerlaw: bool | None = None,
     interp_wave: bool = True,
     interp_spat: bool = True,
@@ -282,8 +282,8 @@ def get_psf_interp(
     output_plate_scale : float
         Resample all grid PSFs to this plate scale in arcsec/pixel before
         interpolating. Required (cannot be None).
-    crop_to_odd_shape : bool
-        Crop output to an odd shape. Default True.
+    recenter_to_odd_shape : bool
+        Recenter output to an odd shape. Default True.
     extend_powerlaw : bool | None
         Extend the PSF with a power-law halo (see ``get_psf`` for details).
     interp_wave : bool
@@ -402,7 +402,7 @@ def get_psf_interp(
                 wave=wi,
                 xs=xi, ys=yi,
                 output_plate_scale=output_plate_scale,
-                crop_to_odd_shape=False,
+                recenter_to_odd_shape=recenter_to_odd_shape,
                 extend_powerlaw=extend_powerlaw,
             )
         return psf_cache[key]
@@ -440,8 +440,8 @@ def get_psf_interp(
 
     ref_info = max(contributions, key=lambda t: t[0])[2]
 
-    if crop_to_odd_shape:
-        psf_out = _crop_to_odd_shape(psf_out)
+    if recenter_to_odd_shape:
+        psf_out = _recenter_psf_to_odd_shape(psf_out)
 
     return psf_out.astype(np.float32), ref_info
 
@@ -544,9 +544,22 @@ def crop_AO_psf(
     return psf_out
 
 
-def _crop_to_odd_shape(psf: np.ndarray) -> np.ndarray:
+def _recenter_psf_to_odd_shape(psf: np.ndarray) -> np.ndarray:
     ny, nx = psf.shape
-    return psf[:ny - ((ny + 1) % 2), :nx - ((nx + 1) % 2)]
+
+    dx = -0.5 if nx % 2 == 0 else 0.0
+    dy = -0.5 if ny % 2 == 0 else 0.0
+
+    if dx != 0.0 or dy != 0.0:
+        psf = shift_psf_phase(psf, dx=dx, dy=dy)
+
+    ny_new = ny if ny % 2 == 1 else ny - 1
+    nx_new = nx if nx % 2 == 1 else nx - 1
+
+    y0 = (ny - ny_new) // 2
+    x0 = (nx - nx_new) // 2
+
+    return psf[y0:y0 + ny_new, x0:x0 + nx_new]
 
 
 def _pad_psf_to_shape(psf: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
