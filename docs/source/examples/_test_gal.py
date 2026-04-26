@@ -42,7 +42,7 @@ dark_current = 0.025  # e- / sec / pixel
 itime = 900.0  # sec (15 min per frame)
 n_frames = 16      # total = 4 hr
 resolution = 4_000  # R = λ / Δλ
-collarea = LIGER_PROPS['keck_collarea']  # m^2
+collarea = LIGER_PROPS['collarea']  # m^2
 
 # Output FOV matches the input galaxy FOV
 # In practice, tHis requires dithers

@@ -27,7 +27,7 @@ def test_expose_ifs():
     #tel_tput = 0.91 # Default
     #ao_tput = 0.8 # Default
     #filt_tput = 0.9 # Default
-    collarea = LIGER_PROPS['keck_collarea'] # m^2
+    collarea = LIGER_PROPS['collarea'] # m^2
 
     # Load filter data
     filter_info = load_filters_summary(filter_name=filter_name)

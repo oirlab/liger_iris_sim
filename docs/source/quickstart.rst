@@ -141,7 +141,7 @@ Expose
     sim = expose_imager(
         source_rate,
         itime=10, n_frames=1,
-        collarea=LIGER_PROPS['keck_collarea'],
+        collarea=LIGER_PROPS['collarea'],
         sky_emission_rate=sky_em_rate,
         tput=tput_img,
         read_noise=9, dark_current=0.025,
