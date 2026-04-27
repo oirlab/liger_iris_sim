@@ -1,6 +1,4 @@
-from matplotlib import axes
 import numpy as np
-from numba import njit
 
 from liger_iris_drp_resources import load_liger_psf, load_iris_psf
 from liger_iris_drp_resources.psfs import _get_liger_psf_filename, _get_iris_psf_filename
