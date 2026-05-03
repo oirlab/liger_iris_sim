@@ -41,8 +41,9 @@ def convolve_point_source(
     dy = y - np.round(y)
     if (dx != 0 or dy != 0) and fix_psf_phase:
         psf = shift_psf_phase(psf, dx=dx, dy=dy)
-    else:
-        psf = psf / np.sum(psf)
+
+    # Normalize psf
+    psf = psf / np.sum(psf)
 
     H, W = image_out.shape
     ny, nx = psf.shape

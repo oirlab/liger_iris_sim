@@ -141,6 +141,7 @@ def make_point_source_ifs_cube(
 
         # Render the reference slice
         image_k = np.zeros(size, dtype=np.float32)
+        
         convolve_point_source(
             xdet[i], ydet[i],
             t_spec_z[k],
