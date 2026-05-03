@@ -100,4 +100,4 @@ def test_expose_ifs():
     # plt.plot(np.sum(sim['observed_rate'][:, 60:69, 60:69], axis=(1, 2))); plt.show()
 
     snr_peak = np.nanmax(sim['snr'])
-    assert 40 < snr_peak < 50, f"Expected SNR between 40 and 50, got {snr_peak:.3f}"
+    assert 41 < snr_peak < 42, f"Expected SNR between 41 and 42, got {snr_peak:.3f}"
