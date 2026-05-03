@@ -95,9 +95,7 @@ def test_expose_ifs():
     )
 
     # NOTE: Keep for debugging
-    # import matplotlib
-    # matplotlib.use("QTAGG")
-    # import matplotlib.pyplot as plt
+    # import matplotlib; matplotlib.use("QTAGG"); import matplotlib.pyplot as plt
     # breakpoint()
     # plt.plot(np.sum(sim['observed_rate'][:, 60:69, 60:69], axis=(1, 2))); plt.show()
 
