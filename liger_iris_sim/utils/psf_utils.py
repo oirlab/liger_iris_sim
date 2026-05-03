@@ -444,23 +444,28 @@ def get_psf(
 #     return psf_out.astype(np.float32), ref_info
 
 
-def shift_psf_phase(
-    psf : np.ndarray,
-    dx : float,
-    dy : float
-) -> np.ndarray:
-    """
-    Shift the phase of a PSF image.
-    """
-    from scipy.ndimage import fourier_shift
-    f = np.fft.fftn(psf)
-    f_shifted = fourier_shift(f, shift=(dy, dx))
-    axes = tuple(range(psf.ndim))
-    psf_shifted = np.fft.ifftn(f_shifted).real
-    psf_shifted = np.clip(psf_shifted, 0, None)
-    psf_shifted /= psf_shifted.sum()
-    return psf_shifted
+# def shift_psf_phase(
+#     psf : np.ndarray,
+#     dx : float,
+#     dy : float
+# ) -> np.ndarray:
+#     """
+#     Shift the phase of a PSF image.
+#     """
+#     from scipy.ndimage import fourier_shift
+#     f = np.fft.fftn(psf)
+#     f_shifted = fourier_shift(f, shift=(dy, dx))
+#     axes = tuple(range(psf.ndim))
+#     psf_shifted = np.fft.ifftn(f_shifted).real
+#     psf_shifted = np.clip(psf_shifted, 0, None)
+#     psf_shifted /= psf_shifted.sum()
+#     return psf_shifted
 
+def shift_psf_phase(psf : np.ndarray, dx : float = 0.0, dy : float = 0.0, order : int = 1) -> np.ndarray:
+    from scipy.ndimage import shift
+    shifted = shift(psf, shift=(dy, dx), order=order, mode='nearest')
+    shifted = np.clip(shifted, 0, None)
+    return shifted
 
 def crop_AO_psf(
     psf : np.ndarray,
