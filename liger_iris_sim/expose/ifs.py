@@ -134,6 +134,11 @@ def expose_ifs(
         snr=snr,
         noise_rate=noise_rate, noise_tot=noise_tot,
         read_noise_tot=read_noise_tot,
+
+        var_rnoise_tot=read_noise_tot**2,
+        var_rnoise_rate=(read_noise_tot / (n_frames * itime))**2,
+        var_poisson_tot=sim_tot,
+        var_poisson_rate=sim_tot / (n_frames * itime)**2,
     )
       
     # Return
