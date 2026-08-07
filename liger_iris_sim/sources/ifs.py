@@ -154,3 +154,48 @@ def make_point_source_ifs_cube(
             cube_out[j] += image_k * (t_spec_z[j] / t_spec_z[k])
 
     return cube_out
+
+
+def normalize_spectrum_to_snr(
+    wave : np.ndarray,
+    flux : np.ndarray,
+    resolution : float,
+    itime : float,
+    snr : float,
+) -> np.ndarray:
+    """
+    Rescale a spectrum's overall amplitude so its median wavelength bin
+    reaches a target Poisson (shot-noise-limited) SNR, assuming Nyquist
+    sampling of the spectral resolution element (2 bins per resolution
+    element). Only Poisson noise is considered; read noise and other
+    detector effects are ignored.
+
+    Parameters
+    ----------
+    wave : np.ndarray
+        Wavelength grid, microns.
+    flux : np.ndarray
+        Flux density spectrum (e.g. photons/s/micron), sampled on `wave`.
+        Any consistent rate-density units work; the result scales the same way.
+    resolution : float
+        Spectral resolution, R = lambda / fwhm.
+    itime : float
+        Integration time, seconds.
+    snr : float
+        Target SNR per wavelength bin.
+
+    Returns
+    -------
+    flux_scaled : np.ndarray
+        `flux` rescaled so its median bin reaches `snr`, on the same `wave` grid.
+        Other bins scale with the local flux level, so brighter/fainter
+        regions of the spectrum end up above/below `snr` accordingly.
+    """
+    fwhm = wave / resolution
+    dlambda = fwhm / 2  # Nyquist sampling: 2 bins per resolution element
+
+    counts = flux * dlambda * itime
+    ref_counts = np.median(counts)
+
+    scale = snr ** 2 / ref_counts
+    return flux * scale
