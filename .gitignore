@@ -73,3 +73,5 @@ uv.lock
 
 
 .claude/
+
+docs/source/examples/output/
