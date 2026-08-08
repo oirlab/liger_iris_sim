@@ -3,7 +3,7 @@ import numpy as np
 from astropy.io import fits
 
 from .column_extraction_ols import extract_columns
-from .resample import _resample_to_common_grid
+from .resample import resample_to_common_grid
 
 __all__ = ["extract_ifs_lenslet"]
 
@@ -15,12 +15,12 @@ def _load_rectmat(rectmat_path : str) -> tuple:
     Returns
     -------
     rectmat : ndarray
-        Shape (n_lens_y, n_lens_x, n_row_window, max_trace_len).
+        Shape (n_row_window, max_trace_len, n_lens_y, n_lens_x).
     offsets : ndarray
-        [col_start, row_start] per lenslet, shape (n_lens_y, n_lens_x, 2).
+        [col_start, row_start] per lenslet, shape (2, n_lens_y, n_lens_x).
     wavesol : ndarray
         Wavelength solution per lenslet, shape
-        (n_lens_y, n_lens_x, max_trace_len), microns.
+        (max_trace_len, n_lens_y, n_lens_x), microns.
     """
     with fits.open(rectmat_path) as hdul:
         rectmat = hdul["RECTMAT"].data
@@ -41,9 +41,13 @@ def save_extracted_cube_to_fits(
     Parameters
     ----------
     wave_out : ndarray
-        Common wavelength grid, shape (n_wave,), microns.
+        Wavelength solution, microns. Shape (n_wave,) if resampled onto a
+        common grid, or (max_trace_len, n_lens_y, n_lens_x) if native
+        per-lenslet (see `extract_ifs_lenslet`).
     cube_flux, cube_err : ndarray
-        Flux and its 1-sigma error, shape (n_wave, n_lens_y, n_lens_x).
+        Flux and its 1-sigma error, same leading/trailing shape convention
+        as `wave_out`: (n_wave, n_lens_y, n_lens_x) or
+        (max_trace_len, n_lens_y, n_lens_x).
     output_path : str
         Path to write the FITS file. Extensions: "FLUX", "ERR", "WAVE".
         Parent directory is created if needed.
@@ -53,9 +57,6 @@ def save_extracted_cube_to_fits(
         os.makedirs(parent, exist_ok=True)
 
     wave_hdr = fits.Header()
-    wave_hdr["BUNIT"] = "micron"
-    wave_hdr["WAVEMIN"] = float(wave_out[0])
-    wave_hdr["WAVEMAX"] = float(wave_out[-1])
 
     hdul = fits.HDUList([
         fits.PrimaryHDU(),
@@ -70,10 +71,10 @@ def save_extracted_cube_to_fits(
 def extract_ifs_lenslet(
     data : np.ndarray,
     rectmat_path : str,
-    output_wavesol : np.ndarray,
+    output_wavesol : np.ndarray | None = None,
+    interp_order : int = 1,
     error : np.ndarray = None,
     output_path : str = None,
-    density : bool = False,
 ) -> dict:
     """
     Main function user calls to extract a lenslet IFS cube from a raw
@@ -81,11 +82,12 @@ def extract_ifs_lenslet(
 
     Extraction is a column-by-column linear (weighted) least-squares solve
     against the rectification matrix: at each detector column, every
-    lenslet trace passing through it is solved for independently (traces
-    are assumed non-overlapping in the row direction, so the design matrix
-    is block-diagonal). Per-lenslet spectra are then resampled onto the
-    caller-provided common wavelength grid `output_wavesol`. See
-    `column_extraction_ols.extract_columns` and
+    lenslet trace passing through it is identified, and traces whose PSF
+    footprints overlap on the detector are solved for jointly (deconvolving
+    each trace's flux from its neighbours' contribution to shared pixels),
+    while non-overlapping traces solve independently. Per-lenslet spectra
+    are then resampled onto the caller-provided common wavelength grid
+    `output_wavesol`. See `column_extraction_ols.extract_columns` and
     `resample._resample_to_common_grid` for details.
 
     Parameters
@@ -95,32 +97,36 @@ def extract_ifs_lenslet(
     rectmat_path : str
         Path to the rectification matrix FITS file, with RECTMAT,
         OFFSETS, and WAVESOL extensions.
-    output_wavesol : ndarray
-        Common wavelength grid to resample every lenslet onto, shape
-        (n_wave,), microns. Must be monotonically increasing.
     error : ndarray, optional
         Per-pixel 1-sigma error for `data`, same shape. If given, a
         weighted least-squares solve is used and the returned "err" is
         populated. If None (default), an unweighted least-squares solve
         is used and "err" is NaN — see `column_extraction_ols.extract_columns`.
+    output_wavesol : ndarray, optional
+        Common wavelength grid to resample every lenslet onto, shape
+        (n_wave,), microns. Must be monotonically increasing. If None
+        (default), no resampling is done and each lenslet's native
+        (per-lenslet) wavelength solution and trace-column flux are
+        returned instead — see "wave"/"flux"/"err" below.
+    interp_order : int, optional
+        Order of the polynomial for interpolation used to resample each lenslet's spectrum onto the common wavelength grid.
     output_path : str, optional
         If given, save the extracted cube (FLUX, ERR, WAVE extensions) here.
-    density : bool, optional
-        If True, convert the output flux from phot/s (per trace-column) to
-        phot/s/micron by dividing by the local wavelength bin width.
-        Default False.
 
     Returns
     -------
     out : dict
-        "wave" : ndarray, shape (n_wave,), microns.
-        "flux" : ndarray, shape (n_wave, n_lens_y, n_lens_x).
-        "err"  : ndarray, shape (n_wave, n_lens_y, n_lens_x).
+        "wave" : ndarray, microns. Shape (n_wave,) if `output_wavesol` was
+            given; otherwise shape (max_trace_len, n_lens_y, n_lens_x),
+            the native per-lenslet wavelength solution.
+        "flux" : ndarray, shape (n_wave, n_lens_y, n_lens_x) or
+            (max_trace_len, n_lens_y, n_lens_x), matching "wave".
+        "err"  : ndarray, same shape as "flux".
         "filepath" : str or None.
     """
     rectmat, offsets, wavesol = _load_rectmat(rectmat_path)
 
-    n_valid_off = int(np.sum(offsets[:, :, 0] >= 0))
+    n_valid_off = int(np.sum(offsets[0] >= 0))
     if n_valid_off == 0:
         raise RuntimeError("Rectmat has no valid lenslets — re-run make_rectmats.py first.")
 
@@ -128,9 +134,20 @@ def extract_ifs_lenslet(
         data, rectmat, offsets, wavesol, err=error,
     )
 
-    cube_flux, cube_err = _resample_to_common_grid(
-        flux_tc, err_tc, offsets, wavesol, output_wavesol, density=density,
-    )
+    if output_wavesol is not None:
+        cube_flux, cube_err = resample_to_common_grid(
+            flux_tc, err_tc,
+            offsets, wavesol,
+            output_wavesol,
+            order=interp_order,
+        )
+    else:
+        # No common grid: fall back to each lenslet's native wavelength
+        # solution and trace-column flux. Already wave-first
+        # (max_trace_len, n_lens_y, n_lens_x), matching the resampled case.
+        output_wavesol = wavesol
+        cube_flux = flux_tc
+        cube_err = err_tc
 
     out = {
         "wave": output_wavesol,

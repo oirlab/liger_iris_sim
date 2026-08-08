@@ -6,7 +6,7 @@ __all__ = ['rebin_image', 'rebin_spectrum', 'rebin_image_scipy']
 from numba import njit
 import numpy as np
 
-@njit(cache=True)
+@njit(nogil=True)
 def _build_edges(wave: np.ndarray) -> np.ndarray:
     n = len(wave)
     edges = np.empty(n + 1, dtype=np.float64)
@@ -20,44 +20,132 @@ def _build_edges(wave: np.ndarray) -> np.ndarray:
     return edges
 
 
-@njit(cache=True)
+@njit(nogil=True)
+def _quad_basis_integral(xa: float, xb: float, denom: float, c: float, d: float) -> float:
+    """Integral over [c, d] of the quadratic Lagrange basis (x-xa)(x-xb)/denom."""
+    return (
+        (d ** 3 - c ** 3) / 3.0
+        - (xa + xb) * (d ** 2 - c ** 2) / 2.0
+        + xa * xb * (d - c)
+    ) / denom
+
+
+@njit(nogil=True)
 def _rebin1d_numba(
+    wave: np.ndarray,
+    flux: np.ndarray,
+    err: np.ndarray,
     in_edges: np.ndarray,
-    in_flux: np.ndarray,
     out_edges: np.ndarray,
+    order: int,
     out_flux: np.ndarray,
+    out_err_var: np.ndarray,
 ) -> None:
+    """
+    Flux-conserving rebin. Assumes a continuous model of the native
+    spectrum: piecewise-constant per input bin (order 0), piecewise-linear
+    through the (wave, flux) samples (order 1), or piecewise-quadratic
+    through the samples using the nearest centered triple of points
+    (order 2). That model is integrated over each output bin (defined by
+    `out_edges`) and accumulated into `out_flux`. `err`, if not all zero,
+    is propagated in quadrature through the same integration weights into
+    `out_err_var` (a variance, not yet sqrt'd).
+    """
+    n = wave.shape[0]
+    n_wave = out_flux.shape[0]
 
-    n_in = len(in_flux)
+    if order == 0:
+        j = 0
+        for k in range(n):
+            i_lo = in_edges[k]
+            i_hi = in_edges[k + 1]
+            i_width = i_hi - i_lo
+            if i_width <= 0.0:
+                continue
+            fk = flux[k]
+            ek = err[k]
 
-    for k in range(n_in):
+            while j < n_wave and out_edges[j + 1] <= i_lo:
+                j += 1
+            jj = j
+            while jj < n_wave and out_edges[jj] < i_hi:
+                lo = out_edges[jj]
+                hi = out_edges[jj + 1]
+                c = i_lo if i_lo > lo else lo
+                d = i_hi if i_hi < hi else hi
+                if d > c:
+                    wgt = (d - c) / i_width
+                    out_flux[jj] += fk * wgt
+                    out_err_var[jj] += (ek * wgt) ** 2
+                jj += 1
 
-        i_lo = in_edges[k]
-        i_hi = in_edges[k + 1]
-        i_width = i_hi - i_lo
+    else:
+        j = 0
+        for k in range(n - 1):
+            wk = wave[k]
+            wk1 = wave[k + 1]
+            h = wk1 - wk
+            if h <= 0.0:
+                continue
 
-        if i_width <= 0.0:
-            continue
+            use_quad = order == 2 and n >= 3
+            if use_quad:
+                if k >= 1:
+                    i0, i1, i2 = k - 1, k, k + 1
+                else:
+                    i0, i1, i2 = k, k + 1, k + 2
+                x0, x1, x2 = wave[i0], wave[i1], wave[i2]
+                y0, y1, y2 = flux[i0], flux[i1], flux[i2]
+                s0, s1, s2 = err[i0], err[i1], err[i2]
+            else:
+                fk = flux[k]
+                fk1 = flux[k + 1]
+                ek = err[k]
+                ek1 = err[k + 1]
 
-        for j in range(len(out_flux)):
-
-            o_lo = out_edges[j]
-            o_hi = out_edges[j + 1]
-
-            overlap = min(i_hi, o_hi) - max(i_lo, o_lo)
-
-            if overlap > 0.0:
-                out_flux[j] += in_flux[k] * (overlap / i_width)
+            while j < n_wave and out_edges[j + 1] <= wk:
+                j += 1
+            jj = j
+            while jj < n_wave and out_edges[jj] < wk1:
+                lo = out_edges[jj]
+                hi = out_edges[jj + 1]
+                c = wk if wk > lo else lo
+                d = wk1 if wk1 < hi else hi
+                if d > c:
+                    if use_quad:
+                        w0 = _quad_basis_integral(x1, x2, (x0 - x1) * (x0 - x2), c, d)
+                        w1 = _quad_basis_integral(x0, x2, (x1 - x0) * (x1 - x2), c, d)
+                        w2 = _quad_basis_integral(x0, x1, (x2 - x0) * (x2 - x1), c, d)
+                        out_flux[jj] += w0 * y0 + w1 * y1 + w2 * y2
+                        out_err_var[jj] += (w0 * s0) ** 2 + (w1 * s1) ** 2 + (w2 * s2) ** 2
+                    else:
+                        # Weights of fk, fk1 in the integral of the linear
+                        # interpolant through (wk, fk) and (wk1, fk1) over [c, d].
+                        alpha = ((wk1 - c) ** 2 - (wk1 - d) ** 2) / (2.0 * h)
+                        beta = ((d - wk) ** 2 - (c - wk) ** 2) / (2.0 * h)
+                        out_flux[jj] += alpha * fk + beta * fk1
+                        out_err_var[jj] += (alpha * ek) ** 2 + (beta * ek1) ** 2
+                jj += 1
 
 
 def rebin_spectrum(
     wave: np.ndarray,
     spec: np.ndarray,
     wave_out: np.ndarray,
-    return_edges: bool = False
-) -> np.ndarray:
+    err: np.ndarray | None = None,
+    order: int = 0,
+    return_edges: bool = False,
+):
     """
-    Rebin a 1-D spectrum onto a new wavelength grid.
+    Rebin a 1-D spectrum onto a new wavelength grid, conserving flux.
+
+    The native spectrum is modeled as piecewise-constant per input bin
+    (order=0, the classic overlap/box rebin), piecewise-linear through the
+    (wave, spec) samples (order=1), or piecewise-quadratic through the
+    samples using the nearest centered triple of points (order=2). That
+    model is integrated over each output bin (edges placed at the
+    midpoints between `wave_out` samples, extrapolated at the ends) and
+    divided by the output bin width.
 
     Parameters
     ----------
@@ -66,7 +154,15 @@ def rebin_spectrum(
     spec : np.ndarray
         The input spectrum.
     wave_out : np.ndarray
-        The output wavelength array.
+        The output wavelength array (bin centers).
+    err : np.ndarray | None, optional
+        1-sigma errors on `spec`, same shape as `spec`. If given, they are
+        propagated in quadrature through the same integration weights and
+        the rebinned 1-sigma errors are returned alongside the spectrum.
+    order : int, optional
+        Order of the assumed native spectrum model: 0 (piecewise-constant,
+        default, matches prior behavior), 1 (piecewise-linear), or 2
+        (piecewise-quadratic).
     return_edges : bool, optional
         If True, also return the input and output wavelength bin edges.
         Default is False.
@@ -75,22 +171,34 @@ def rebin_spectrum(
     -------
     spec_out : np.ndarray
         The rebinned spectrum.
+    err_out : np.ndarray
+        The rebinned 1-sigma error. Only returned if `err` is given.
+    in_edges, out_edges : np.ndarray
+        Only returned if `return_edges` is True.
     """
+    wave = np.asarray(wave, dtype=np.float64)
+    spec = np.asarray(spec, dtype=np.float64)
+    wave_out = np.asarray(wave_out, dtype=np.float64)
+    err_in = np.zeros_like(spec) if err is None else np.asarray(err, dtype=np.float64)
 
     in_edges = _build_edges(wave)
     out_edges = _build_edges(wave_out)
 
     spec_out = np.zeros(len(wave_out), dtype=np.float64)
+    err_var_out = np.zeros(len(wave_out), dtype=np.float64)
 
-    _rebin1d_numba(in_edges, spec, out_edges, spec_out)
+    _rebin1d_numba(wave, spec, err_in, in_edges, out_edges, order, spec_out, err_var_out)
 
+    result = (spec_out,)
+    if err is not None:
+        result += (np.sqrt(err_var_out),)
     if return_edges:
-        return spec_out, in_edges, out_edges
-    else:
-        return spec_out
+        result += (in_edges, out_edges)
+
+    return result[0] if len(result) == 1 else result
 
 
-@njit(cache=True)
+@njit(nogil=True)
 def _rebin2d_numba(
     image  : np.ndarray,
     output_image : np.ndarray,

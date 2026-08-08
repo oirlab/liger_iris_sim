@@ -215,7 +215,7 @@ def simulate_raw_ifs_frame(
 
     # Add noise
     if itime is not None and itime > 0:
-        data_noise, error = add_noise(
+        data, error = add_noise(
             sim,
             itime=itime,
             n_frames=n_frames,
@@ -227,7 +227,12 @@ def simulate_raw_ifs_frame(
         data = np.copy(sim)
         error = np.zeros_like(data)
 
-    out = {"sim": sim, "data": data, "error": error, "filepath": output_path}
+    out = {
+        "sim": sim,
+        "data": data,
+        "error": error,
+        "filepath": output_path
+    }
 
     if output_path is not None:
         save_raw_frame_to_fits(out, output_path)
@@ -235,7 +240,7 @@ def simulate_raw_ifs_frame(
     return out
 
 
-def save_raw_frame_to_fits(out, output_path : str):
+def save_raw_frame_to_fits(out, output_path : str, meta : dict | None = None):
     """
     Save the raw frame and noise to a FITS file.
 
@@ -244,21 +249,24 @@ def save_raw_frame_to_fits(out, output_path : str):
     out : dict
         Result returned from `simulate_raw_ifs_frame`.
         Output FITS file has extensions:
-        - "PRIMARY" for the primary header (no data)
-        - "DATA"
-        - "ERR" for the simulated data and noise, respectively.
+            - "PRIMARY" for the primary header (no data)
+            - "SIM" for the simulated data (noiseless).
+            - "DATA" for the simulated data with noise.
+            - "ERR" for the simulated error.
+        
     output_path : str
         Path to save the FITS file.
+    meta : dict
+        Metadata to include in the primary header.
     """
     # TODO: Add metadata
     if output_path is not None:
-        hdul = fits.HDUList([
-            fits.PrimaryHDU(),
+        fits.HDUList([
+            fits.PrimaryHDU(header=fits.Header(meta)),
+            fits.ImageHDU(out['sim'], name="SIM"),
             fits.ImageHDU(out['data'], name="DATA"),
-        ])
-        if out['data_noise'] is not None:
-            hdul.append(fits.ImageHDU(out['data_noise'], name="ERR"))
-        hdul.writeto(output_path, overwrite=True)
+            fits.ImageHDU(out['error'], name="ERR"),
+        ]).writeto(output_path, overwrite=True)
 
 
 def add_noise(

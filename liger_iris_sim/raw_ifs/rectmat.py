@@ -19,7 +19,7 @@ from liger_iris_drp_resources import (
 __all__ = ["make_rectmat", "save_rectmat_to_fits"]
 
 
-@njit(cache=True, nogil=True)
+@njit(nogil=True)
 def _fill_rectmat_for_lenslet(
     rectmat_slice : np.ndarray,   # (n_row_window, max_trace_len) view to fill in place
     y_centers : np.ndarray,       # (n_col,) trace row centre per trace-column
@@ -134,15 +134,15 @@ def _build_rectmat(
     Pass 2: fill the rectification matrix, offsets, and wavelength
     solution for every valid lenslet.
 
-    rectmat[ly, lx, r, tc] is the weight for detector pixel
-    (offsets[ly, lx, 1] + r, offsets[ly, lx, 0] + tc).
+    rectmat[r, tc, ly, lx] is the weight for detector pixel
+    (offsets[1, ly, lx] + r, offsets[0, ly, lx] + tc).
     """
     n_lens_y, n_lens_x = arr_mask.shape
     n_lenslets = len(x_pix)
 
-    rectmat = np.zeros((n_lens_y, n_lens_x, n_row_window, max_trace_len), dtype=np.float32)
-    offsets = np.full((n_lens_y, n_lens_x, 2), -1, dtype=np.int32)
-    wavesol = np.zeros((n_lens_y, n_lens_x, max_trace_len), dtype=np.float32)
+    rectmat = np.zeros((n_row_window, max_trace_len, n_lens_y, n_lens_x), dtype=np.float32)
+    offsets = np.full((2, n_lens_y, n_lens_x), -1, dtype=np.int32)
+    wavesol = np.zeros((max_trace_len, n_lens_y, n_lens_x), dtype=np.float32)
 
     for ly in range(n_lens_y):
         for lx in range(n_lens_x):
@@ -161,12 +161,12 @@ def _build_rectmat(
             y_centers = y_of_x(x_cols)
 
             row_start = max(int(np.floor(np.min(y_centers))) - window_size, 0)
-            offsets[ly, lx, 0] = pix_lo
-            offsets[ly, lx, 1] = row_start
-            wavesol[ly, lx, :len(x_cols)] = wave_of_x(x_cols).astype(np.float32)
+            offsets[0, ly, lx] = pix_lo
+            offsets[1, ly, lx] = row_start
+            wavesol[:len(x_cols), ly, lx] = wave_of_x(x_cols).astype(np.float32)
 
             _fill_rectmat_for_lenslet(
-                rectmat[ly, lx], y_centers, row_start,
+                rectmat[:, :, ly, lx], y_centers, row_start,
                 DETECTOR_SHAPE[0], epsf, window_size,
             )
 
@@ -183,12 +183,12 @@ def save_rectmat_to_fits(
     Parameters
     ----------
     rectmat : ndarray
-        Shape (n_lens_y, n_lens_x, n_row_window, max_trace_len).
+        Shape (n_row_window, max_trace_len, n_lens_y, n_lens_x).
     offsets : ndarray
-        [col_start, row_start] per lenslet, shape (n_lens_y, n_lens_x, 2).
+        [col_start, row_start] per lenslet, shape (2, n_lens_y, n_lens_x).
     wavesol : ndarray
         Wavelength solution per lenslet, shape
-        (n_lens_y, n_lens_x, max_trace_len), microns.
+        (max_trace_len, n_lens_y, n_lens_x), microns.
     output_path : str
         Path to write the FITS file. Extensions: "RECTMAT", "OFFSETS",
         "WAVESOL". Parent directory is created if needed.
@@ -250,12 +250,12 @@ def make_rectmat(
     Returns
     -------
     out : dict
-        "rectmat" : ndarray, shape (n_lens_y, n_lens_x, n_row_window, max_trace_len).
-            rectmat[ly, lx, r, tc] is the weight for detector pixel
-            (offsets[ly, lx, 1] + r, offsets[ly, lx, 0] + tc).
-        "offsets" : ndarray, shape (n_lens_y, n_lens_x, 2): [col_start, row_start] per lenslet.
+        "rectmat" : ndarray, shape (n_row_window, max_trace_len, n_lens_y, n_lens_x).
+            rectmat[r, tc, ly, lx] is the weight for detector pixel
+            (offsets[1, ly, lx] + r, offsets[0, ly, lx] + tc).
+        "offsets" : ndarray, shape (2, n_lens_y, n_lens_x): [col_start, row_start] per lenslet.
             col_start < 0 marks an invalid/unused lenslet.
-        "wavesol" : ndarray, shape (n_lens_y, n_lens_x, max_trace_len), microns.
+        "wavesol" : ndarray, shape (max_trace_len, n_lens_y, n_lens_x), microns.
         "filepath" : str or None.
     """
     filter_info = load_filters_summary(filter_name)

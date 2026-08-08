@@ -17,7 +17,7 @@ IRIS_PROPS = {
     'read_noise': 9,
     'imager_detector_size': (4096, 4096),
     'ifs_detector_size': (4096, 4096),
-    'ifs_detector_pixel_size_um': 10.0 # 10 micron pixels
+    'ifs_detector_pixel_size_um': 15.0 # 15 micron pixels
 }
 
 
