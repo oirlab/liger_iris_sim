@@ -28,8 +28,6 @@ def _simulate_lenslet_raw_frame(
     window_size : int = 2,
     tracepos_deg : int = 1,
     wavesol_deg : int = 1,
-    density : bool = False,
-    pad_ends : bool = True,
 ) -> np.ndarray:
     """
     Render a raw 2D IFS image from a cube of lenslet spectra.
@@ -39,8 +37,7 @@ def _simulate_lenslet_raw_frame(
     Parameters
     ----------
     input_cube : ndarray
-        Input IFS cube of shape (n_wave, n_lenslets_y, n_lenslets_x).
-        Can be in photons/sec or photons/sec/micron if density=True.
+        Input IFS cube of shape (n_wave, n_lenslets_y, n_lenslets_x). Must be in photons/sec/micron.
     input_wave : ndarray
         Common wavelength grid for `input_cube`, microns.
     arr_mask : ndarray
@@ -59,11 +56,6 @@ def _simulate_lenslet_raw_frame(
         Degree of polynomial to fit the trace position y(x).
     wavesol_deg : int
         Degree of polynomial to fit the wavelength solution lambda(x).
-    density : bool
-        If True, the input_cube is in photons/sec/micron.
-        If False, the input_cube is in photons/sec.
-    pad_ends : bool
-        If True, extend the trace beyond the Zemax points by half a channel on each end.
 
     Returns
     -------
@@ -98,11 +90,8 @@ def _simulate_lenslet_raw_frame(
                 x_pix_pts=x_pix_pts,
                 y_pix_pts=y_pix_pts,
                 wave_pts=wave_pts,
-                wave=input_wave,
                 tracepos_deg=tracepos_deg,
                 wavesol_deg=wavesol_deg,
-                density=density,
-                pad_ends=pad_ends
             )
 
             # Pixel columns to render
@@ -119,7 +108,6 @@ def _simulate_lenslet_raw_frame(
                 input_wave,
                 input_spec,
                 col_edges,
-                density=density
             )
 
             # Render the lenslet.
@@ -147,8 +135,6 @@ def simulate_raw_ifs_frame(
     window_size : int = 2,
     tracepos_deg : int = 1,
     wavesol_deg : int = 1,
-    density : bool = False,
-    pad_ends : bool = True,
     itime : float = None,
     n_frames : int = 1,
     poisson : bool = True,
@@ -162,8 +148,7 @@ def simulate_raw_ifs_frame(
     Parameters
     ----------
     input_cube : ndarray
-        Input IFS cube of shape (n_wave, n_lenslets_y, n_lenslets_x).
-        Can be in photons/sec or photons/sec/micron if density=True.
+        Input IFS cube of shape (n_wave, n_lenslets_y, n_lenslets_x). Must be in photons/sec/micron.
     input_wave : ndarray
         Common wavelength grid for `input_cube`, microns.
     filter_name : str
@@ -174,7 +159,7 @@ def simulate_raw_ifs_frame(
         Integration time in seconds. If None, no noise is added.
     n_frames : int, optional
         Number of frames to simulate. Default is 1.
-    include_poisson : bool, optional
+    poisson : bool, optional
         Whether to include Poisson noise. Default is True.
     """
 
@@ -209,8 +194,6 @@ def simulate_raw_ifs_frame(
         window_size=window_size,
         tracepos_deg=tracepos_deg,
         wavesol_deg=wavesol_deg,
-        density=density,
-        pad_ends=pad_ends,
     )
 
     # Add noise

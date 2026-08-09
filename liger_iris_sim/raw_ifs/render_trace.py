@@ -5,7 +5,7 @@ from numba import njit
 from ..utils import LIGER_PROPS
 PIXEL_SIZE_UM = LIGER_PROPS['ifs_detector_pixel_size_um']
 
-@njit(cache=True, nogil=True)
+@njit(nogil=True)
 def render_trace_for_lenslet(
     image_out : np.ndarray,
     px_lo : int,

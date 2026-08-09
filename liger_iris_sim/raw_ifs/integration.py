@@ -8,7 +8,7 @@ def _integral_to(wave : np.ndarray, flux : np.ndarray, x : np.ndarray) -> np.nda
     The input spectrum is linearly interpolated between its samples.
     Values outside [wave[0], wave[-1]] are 0.
     """
-    x = np.clip(np.asarray(x, dtype=np.float64), wave[0], wave[-1])
+    x = np.clip(x, wave[0], wave[-1])
     dw = np.diff(wave)
     slope = np.diff(flux) / dw
     cum = np.concatenate(([0.0], np.cumsum(0.5 * (flux[:-1] + flux[1:]) * dw)))
@@ -26,7 +26,6 @@ def _get_channel_edges(wave : np.ndarray) -> np.ndarray:
 def integrate_spectrum(
     wave : np.ndarray, flux : np.ndarray,
     wave_edges : np.ndarray,
-    density : bool,
 ) -> np.ndarray:
     """
     Integrate a spectrum over wavelength bins.
@@ -39,19 +38,12 @@ def integrate_spectrum(
         The flux samples of the input spectrum.
     wave_edges : ndarray
         The wavelength bin edges to integrate over.
-    density : bool
-        If True, the input flux is a density (per unit wavelength) and the output is the integral over each bin.
-        If False, the input flux is already integrated over each bin and the output is the integral over each bin.
 
     Returns
     -------
     flux_out : ndarray
         The integrated flux over each wavelength bin defined by `wave_edges`.
     """
-    if density:
-        c = _integral_to(wave, flux, wave_edges)
-    else:
-        cum = np.concatenate(([0.0], np.cumsum(flux)))
-        c = np.interp(wave_edges, _get_channel_edges(wave), cum)
+    c = _integral_to(wave, flux, wave_edges)
     flux_out = np.abs(np.diff(c))
     return flux_out

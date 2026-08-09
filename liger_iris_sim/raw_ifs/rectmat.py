@@ -67,16 +67,11 @@ def _trace_pixel_span(
     tracepos_deg : int, wavesol_deg : int,
 ):
     """
-    Detector column range and trace geometry for one lenslet, clipped to
-    the detector. Reuses `get_trace_geometry` (density=True, pad_ends=False,
-    so no cube-specific end-padding is applied — there is no input cube
-    here, just the raw trace) so the pixel span always matches the
-    renderer's own definition of the trace.
+    Detector column range and trace geometry for one lenslet, clipped to the detector. Reuses `get_trace_geometry`. so no cube-specific end-padding is applied — there is no input cube here, just the raw trace) so the pixel span always matches the renderer's own definition of the trace.
     """
     x_lo, x_hi, y_of_x, wave_of_x = get_trace_geometry(
-        x_pts, y_pts, wave_pts, wave=None,
+        x_pts, y_pts, wave_pts,
         tracepos_deg=tracepos_deg, wavesol_deg=wavesol_deg,
-        density=True, pad_ends=False,
     )
     pix_lo = max(int(np.ceil(x_lo - 0.5)), 0)
     pix_hi = min(int(np.floor(x_hi + 0.5)), DETECTOR_SHAPE[1] - 1)

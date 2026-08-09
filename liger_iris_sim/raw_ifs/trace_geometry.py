@@ -39,16 +39,27 @@ def get_trace_geometry(
     x_pix_pts : np.ndarray,
     y_pix_pts : np.ndarray,
     wave_pts : np.ndarray,
-    wave : np.ndarray,
     tracepos_deg : int,
     wavesol_deg : int,
-    density : bool,
-    pad_ends : bool
 ):
     """
-    The single definition of "where does this trace start and stop, and what
-    are y(x) and lambda(x) along it".  Used by the renderer and any flux check,
-    so the two cannot drift apart.
+    Determine the start and stop columns of the trace for this lenslet.
+    Determines the trace position y(x) and wavelength solution lambda(x).
+
+    All units are in detector pixels (x, y) and microns (lambda).
+
+    Parameters
+    ----------
+    x_pix_pts : np.ndarray
+        Zemax trace x-pixel points (detector columns).
+    y_pix_pts : np.ndarray
+        Zemax trace y-pixel points (detector rows).
+    wave_pts : np.ndarray
+        Zemax trace wavelength points (microns).
+    tracepos_deg : int
+        Degree of polynomial to fit the trace position y(x).
+    wavesol_deg : int
+        Degree of polynomial to fit the wavelength solution lambda(x).
 
     Returns
     -------
@@ -68,21 +79,5 @@ def get_trace_geometry(
         tracepos_deg=tracepos_deg,
         wavesol_deg=wavesol_deg
     )
-
-    if pad_ends and not density and x_hi > x_lo:
-        # The Zemax points sit at channel CENTRES, so the outer half-channel of
-        # the cube falls beyond them and would be clipped -- a silent 1/n_wave
-        # flux leak.  Extend just far enough to catch it, capped at 2 pixels so
-        # a bad fit cannot run away.
-        edges_w = _get_channel_edges(wave)
-        half = 0.5 * max(edges_w[1] - edges_w[0], edges_w[-1] - edges_w[-2])
-        disp = min(
-            abs(wave_of_x(x_lo + 1.0) - wave_of_x(x_lo)),
-            abs(wave_of_x(x_hi) - wave_of_x(x_hi - 1.0))
-        )
-        if disp > 0:
-            pad = min(half / disp, 2.0)
-            x_lo -= pad
-            x_hi += pad
 
     return x_lo, x_hi, y_of_x, wave_of_x
