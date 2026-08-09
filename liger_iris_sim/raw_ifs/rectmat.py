@@ -1,14 +1,13 @@
 import os
 import numpy as np
 from astropy.io import fits
-from numba import njit
 
 from .trace_geometry import get_trace_geometry
 from .micropupil_psf import get_effective_psf
+from .render_trace import render_trace_for_lenslet
 
 from ..utils import LIGER_PROPS
 DETECTOR_SHAPE = LIGER_PROPS['ifs_detector_size']
-PIXEL_SIZE_UM = LIGER_PROPS['ifs_detector_pixel_size_um']
 
 from liger_iris_drp_resources import (
     load_filters_summary,
@@ -17,49 +16,6 @@ from liger_iris_drp_resources import (
 )
 
 __all__ = ["make_rectmat", "save_rectmat_to_fits"]
-
-
-@njit(nogil=True)
-def _fill_rectmat_for_lenslet(
-    rectmat_slice : np.ndarray,   # (n_row_window, max_trace_len) view to fill in place
-    y_centers : np.ndarray,       # (n_col,) trace row centre per trace-column
-    row_start : int,
-    det_n_rows : int,
-    epsf : np.ndarray,
-    window_size : int,
-):
-    """
-    Fill one lenslet's weight slice of the rectification matrix, one
-    trace-column at a time. Mirrors `render_trace.render_trace_for_lenslet`
-    (same ePSF interpolation), but writes weights into a compact
-    (row_window, trace_len) array instead of accumulating flux into the
-    full detector image.
-    """
-    n_row_window = rectmat_slice.shape[0]
-    n_col = y_centers.size
-    n_epsf_y = epsf.shape[0]
-    cy = (epsf.shape[0] - 1) // 2
-    cx = (epsf.shape[1] - 1) // 2
-
-    for tc in range(n_col):
-        y_c = y_centers[tc]
-        py_lo = int(np.floor(y_c - window_size))
-        py_hi = int(np.ceil(y_c + window_size))
-        if py_lo < 0:
-            py_lo = 0
-        if py_hi > det_n_rows - 1:
-            py_hi = det_n_rows - 1
-
-        for py in range(py_lo, py_hi + 1):
-            r = py - row_start
-            if r < 0 or r >= n_row_window:
-                continue
-            fy = (py - y_c) * PIXEL_SIZE_UM + cy
-            iy = int(np.floor(fy))
-            if iy < 0 or iy + 1 >= n_epsf_y:
-                continue
-            ty = fy - iy
-            rectmat_slice[r, tc] = (1.0 - ty) * epsf[iy, cx] + ty * epsf[iy + 1, cx]
 
 
 def _trace_pixel_span(
@@ -160,9 +116,17 @@ def _build_rectmat(
             offsets[1, ly, lx] = row_start
             wavesol[:len(x_cols), ly, lx] = wave_of_x(x_cols).astype(np.float32)
 
-            _fill_rectmat_for_lenslet(
-                rectmat[:, :, ly, lx], y_centers, row_start,
-                DETECTOR_SHAPE[0], epsf, window_size,
+            # Illuminate this lenslet alone with a flat (all-ones) spectrum and
+            # render it with the same 2D ePSF kernel used by the forward
+            # simulator, so the rectmat stays exactly consistent with it.
+            avail_rows = min(n_row_window, DETECTOR_SHAPE[0] - row_start)
+            render_trace_for_lenslet(
+                rectmat[:avail_rows, :, ly, lx],
+                px_lo=0,
+                y_pix=y_centers - row_start,
+                flux=np.ones(len(x_cols), dtype=np.float32),
+                epsf=epsf,
+                window_size=window_size,
             )
 
     return rectmat, offsets, wavesol
@@ -231,8 +195,8 @@ def make_rectmat(
     resolution : str
         Spectral resolution.
     window_size : int, optional
-        Half-width in detector rows of the PSF footprint captured around
-        each trace column. Default 2.
+        Half-width in detector rows and columns of the ePSF footprint
+        captured around each trace point. Default 2.
     tracepos_deg : int, optional
         Degree of polynomial fit to the trace position y(x). Default 1.
     wavesol_deg : int, optional
