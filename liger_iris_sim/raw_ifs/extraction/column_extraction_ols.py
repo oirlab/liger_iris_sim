@@ -190,7 +190,7 @@ def extract_columns(
                 )
 
         if verbose and col % 200 == 0:
-            print(f"\r  col {col}/{det_n_cols}  active={active.sum()}", end="", flush=True)
+            print(f"\r  col {col}/{det_n_cols}", end="", flush=True)
 
     if verbose:
         print(f"\r  col {det_n_cols}/{det_n_cols}  done                  ")
