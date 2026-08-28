@@ -1,0 +1,259 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "0",
+   "metadata": {},
+   "source": [
+    "# Field of Stars — Liger Imager"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from liger_iris_sim.sources import make_point_source_image\n",
+    "from liger_iris_sim.expose import compute_throughput, expose_imager\n",
+    "from liger_iris_sim.utils import LIGER_PROPS, compute_filter_photon_flux, get_psf\n",
+    "from liger_iris_sim.sky import get_maunakea_sky_background\n",
+    "from liger_iris_drp_resources.filters import load_filters_summary\n",
+    "\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2",
+   "metadata": {},
+   "source": [
+    "## Instrument and exposure parameters"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "instrument_name = 'Liger'\n",
+    "instrument_mode = 'img'          # imager mode\n",
+    "filt = 'J'\n",
+    "size = (2048, 2048)     # detector size in pixels\n",
+    "read_noise = 9        # e- RMS\n",
+    "resolution = 4000\n",
+    "dark_current = 0.025  # e- / sec / pixel\n",
+    "scale = 0.01          # arcsec / pixel\n",
+    "itime = 300           # integration time, sec\n",
+    "n_frames = 1          # number of coadded frames\n",
+    "collarea = LIGER_PROPS['collarea']  # m^2"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4",
+   "metadata": {},
+   "source": [
+    "## Load filter data and compute throughput\n",
+    "\n",
+    "`load_filters_summary` returns filter metadata including the central wavelength, zero-point flux, and background magnitude.\n",
+    "\n",
+    "`compute_throughput` folds together telescope, AO, filter, and instrument throughput."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "filter_info = load_filters_summary(filter_name=filt)\n",
+    "\n",
+    "tput = compute_throughput(\n",
+    "    instrument_name=instrument_name,\n",
+    "    instrument_mode=instrument_mode,\n",
+    "    wave=filter_info['wavecenter'],\n",
+    "    tel=0.8, ao=0.65, filt=filt\n",
+    ")\n",
+    "print(f\"Total throughput for {instrument_mode} mode at {filter_info['wavecenter']:.3f} µm: {tput:.3f}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6",
+   "metadata": {},
+   "source": [
+    "## Get the PSF\n",
+    "`get_psf` returns the PSF at a given wavelength and field position binned on the detector or lenslet/slicer grid."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "psf, psf_info = get_psf(\n",
+    "    instrument_name=instrument_name,\n",
+    "    instrument_mode=instrument_mode,\n",
+    "    wave=filter_info['wavecenter'],\n",
+    "    xs=0, ys=0,\n",
+    "    output_plate_scale=scale\n",
+    ")\n",
+    "print(f\"PSF shape after rebinning: {psf.shape}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8",
+   "metadata": {},
+   "source": [
+    "## Create a field of stars\n",
+    "\n",
+    "`compute_filter_photon_flux` converts a magnitude to photons / sec / m² using the filter zero-point.\n",
+    "`make_point_source_image` places each star into the source rate image, convolved with the PSF."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "np.random.seed(1)\n",
+    "n_stars = 10\n",
+    "mag_range = (18, 19)\n",
+    "\n",
+    "source_rate = np.zeros(size, dtype=np.float32)\n",
+    "\n",
+    "for i in range(n_stars):\n",
+    "    mag = np.random.uniform(mag_range[0], mag_range[1])\n",
+    "    xpix = int(np.random.uniform(5, size[1] - 5))\n",
+    "    ypix = int(np.random.uniform(5, size[0] - 5))\n",
+    "    photon_flux = compute_filter_photon_flux(mag, zp=filter_info['zpphot'])\n",
+    "    print(f\"Star {i+1:2d}: mag={mag:.2f}, x={xpix}, y={ypix}, flux={photon_flux:.2e} phot/s/m²\")\n",
+    "    make_point_source_image(\n",
+    "        xpix, ypix, photon_flux,\n",
+    "        psf=psf,\n",
+    "        image_out=source_rate,\n",
+    "    )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "10",
+   "metadata": {},
+   "source": [
+    "## Sky background\n",
+    "\n",
+    "The per-pixel sky emission rate is derived from the filter background magnitude and integrated over the pixel solid angle."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "11",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sky_data = get_maunakea_sky_background(\n",
+    "    filter_info=filter_info,\n",
+    "    resolution=resolution,\n",
+    "    T_tel=275, T_atm=258, T_aos=243,\n",
+    "    Em_tel=0.09, Em_atm=0.2, Em_aos=0.01,\n",
+    "    plate_scale=scale,\n",
+    ")\n",
+    "\n",
+    "sky_em_rate = sky_data['sky_em_rate_bandpass_tot']\n",
+    "sky_trans = sky_data['sky_trans_bandpass_mean']"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "12",
+   "metadata": {},
+   "source": [
+    "## Run the exposure simulation\n",
+    "\n",
+    "`expose_imager` adds Poisson noise, dark current, and read noise, and returns a dict of simulated images and noise components."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "13",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sim = expose_imager(\n",
+    "    source_rate,\n",
+    "    itime=itime, n_frames=n_frames, collarea=collarea,\n",
+    "    sky_emission_rate=sky_em_rate,\n",
+    "    tput=tput, read_noise=read_noise, dark_current=dark_current,\n",
+    ")\n",
+    "print(f\"Peak SNR: {np.nanmax(sim['snr']):.1f}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "14",
+   "metadata": {},
+   "source": [
+    "## Visualize results"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "15",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, axes = plt.subplots(1, 2, figsize=(12, 5))\n",
+    "rate_map = sim['observed_rate'].copy()\n",
+    "rate_map[rate_map <= 0] = np.nan  # Mask non-positive values for\n",
+    "im0 = axes[0].imshow(\n",
+    "    np.log10(rate_map),\n",
+    "    origin='lower', cmap='inferno',\n",
+    ")\n",
+    "axes[0].set_title('log10(Observed rate (e-/s))')\n",
+    "plt.colorbar(im0, ax=axes[0])\n",
+    "\n",
+    "im1 = axes[1].imshow(sim['snr'], origin='lower', cmap='viridis', vmin=0)\n",
+    "axes[1].set_title('SNR per pixel')\n",
+    "plt.colorbar(im1, ax=axes[1])\n",
+    "\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "liger_iris",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.13.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

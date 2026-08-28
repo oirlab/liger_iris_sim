@@ -1,0 +1,12 @@
+liger\_iris\_sim.utils.parallelization\_utils
+=============================================
+
+.. automodule:: liger_iris_sim.utils.parallelization_utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      numba_thread_scope
+   

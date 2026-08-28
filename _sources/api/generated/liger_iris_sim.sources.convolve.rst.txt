@@ -1,0 +1,13 @@
+liger\_iris\_sim.sources.convolve
+=================================
+
+.. automodule:: liger_iris_sim.sources.convolve
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      convolve_point_source
+      convolve_spectrum
+   

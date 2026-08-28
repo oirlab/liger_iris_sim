@@ -1,0 +1,15 @@
+liger\_iris\_sim.utils.filter\_utils
+====================================
+
+.. automodule:: liger_iris_sim.utils.filter_utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      compute_filter_mag
+      compute_filter_photon_flux
+      compute_filter_zeropoint
+      generate_wave_grid_for_filter
+   

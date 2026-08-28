@@ -1,0 +1,13 @@
+liger\_iris\_sim.expose.throughput
+==================================
+
+.. automodule:: liger_iris_sim.expose.throughput
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      compute_throughput
+      get_filter_throughput
+   

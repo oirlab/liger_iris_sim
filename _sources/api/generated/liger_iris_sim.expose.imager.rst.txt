@@ -1,0 +1,12 @@
+liger\_iris\_sim.expose.imager
+==============================
+
+.. automodule:: liger_iris_sim.expose.imager
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      expose_imager
+   

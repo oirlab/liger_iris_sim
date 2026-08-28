@@ -1,0 +1,12 @@
+liger\_iris\_sim.expose.ifs
+===========================
+
+.. automodule:: liger_iris_sim.expose.ifs
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      expose_ifs
+   

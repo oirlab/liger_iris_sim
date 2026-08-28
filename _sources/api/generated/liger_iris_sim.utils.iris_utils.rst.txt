@@ -1,0 +1,15 @@
+liger\_iris\_sim.utils.iris\_utils
+==================================
+
+.. automodule:: liger_iris_sim.utils.iris_utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      iris_ifs_to_spatial
+      iris_imager_to_spatial
+      iris_sky_to_imager
+      iris_skyrel_to_imager
+   

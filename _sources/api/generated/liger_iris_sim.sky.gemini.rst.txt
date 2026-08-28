@@ -1,0 +1,12 @@
+liger\_iris\_sim.sky.gemini
+===========================
+
+.. automodule:: liger_iris_sim.sky.gemini
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_gemini_background
+   

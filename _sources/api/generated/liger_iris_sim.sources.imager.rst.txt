@@ -1,0 +1,12 @@
+liger\_iris\_sim.sources.imager
+===============================
+
+.. automodule:: liger_iris_sim.sources.imager
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_point_source_image
+   

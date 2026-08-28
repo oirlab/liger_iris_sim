@@ -1,0 +1,14 @@
+liger\_iris\_sim.sky.background\_sky
+====================================
+
+.. automodule:: liger_iris_sim.sky.background_sky
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_maunakea_sky_background
+      get_maunakea_spectral_sky_emission
+      get_maunakea_spectral_sky_transmission
+   

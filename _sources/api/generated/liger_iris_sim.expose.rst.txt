@@ -1,0 +1,16 @@
+﻿liger\_iris\_sim.expose
+=======================
+
+.. automodule:: liger_iris_sim.expose
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   ifs
+   imager
+   saturation
+   throughput

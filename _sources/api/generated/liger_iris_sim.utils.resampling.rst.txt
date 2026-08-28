@@ -1,0 +1,14 @@
+liger\_iris\_sim.utils.resampling
+=================================
+
+.. automodule:: liger_iris_sim.utils.resampling
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      rebin_image
+      rebin_image_scipy
+      rebin_spectrum
+   

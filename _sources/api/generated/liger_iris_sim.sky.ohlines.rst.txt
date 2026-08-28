@@ -1,0 +1,13 @@
+liger\_iris\_sim.sky.ohlines
+============================
+
+.. automodule:: liger_iris_sim.sky.ohlines
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      sim_ohline_lorenztian
+      sim_ohlines
+   

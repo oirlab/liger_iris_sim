@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+
+<html :class="{ 'dark' : darkMode === true }" data-content_root="../" lang="en" x-data="{ darkMode: $persist(window.matchMedia('(prefers-color-scheme: dark)').matches), activeSection: ''}">
+<head>
+<script>
+    (function () {
+      // Set initial color scheme
+      if ((localStorage.getItem("_x_darkMode") === "true") || (window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.documentElement.classList.add("dark");
+      }
+
+      // Watch for media preference changes
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
+        localStorage.setItem("_x_darkMode", event.matches);
+        document.documentElement.classList.toggle("dark", event.matches);
+      });
+    })();
+  </script>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="#ffffff" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="#030711" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Galaxy at z~1 in H-alpha - Liger IFS | liger_iris_sim  documentation</title>
+<meta content="Galaxy at z~1 in H-alpha - Liger IFS | liger_iris_sim  documentation" property="og:title"/>
+<meta content="Galaxy at z~1 in H-alpha - Liger IFS | liger_iris_sim  documentation" name="twitter:title"/>
+<link href="../_static/pygments.css?v=d862e8e8" rel="stylesheet" type="text/css"/>
+<link href="../_static/theme.css?v=d6d7c91b" rel="stylesheet" type="text/css"/>
+<link href="../_static/nbsphinx-code-cells.css?v=2aa19091" rel="stylesheet" type="text/css"/>
+<link href="../_static/custom.css?v=8526d40f" rel="stylesheet" type="text/css"/>
+<link href="https://astrobc1.github.io/liger_iris_sim/examples/sim_galz1halpha_liger_ifs.html" rel="canonical"/>
+<link href="../search.html" rel="search" title="Search"/>
+<link href="../genindex.html" rel="index" title="Index"/>
+<link href="sim_velmap_stars_liger_ifs.html" rel="next" title="Stellar Velocity Mapping — Liger IFS"/>
+<link href="sim_stars_liger_ifs.html" rel="prev" title="Field of Stars — Liger IFS"/>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-xs border-border bg-background/90 backdrop-blur"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="../index.html"><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap">liger_iris_sim  documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" fill="currentColor" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 gap-2 sm:gap-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="../search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+<kbd class="pointer-events-none absolute right-1.5 top-2 hidden h-5 select-none text-muted-foreground items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex group-hover:bg-accent group-hover:text-accent-foreground">
+<span class="text-xs">⌘</span>
+    K
+  </kbd>
+</form>
+</div>
+<nav class="flex items-center gap-1">
+<button @click="darkMode = !darkMode" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent hover:text-accent-foreground h-9 w-9" title="Toggle color scheme" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0" fill="currentColor" height="16" viewbox="0 96 960 960" width="16" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100" fill="currentColor" height="16" viewbox="0 96 960 960" width="16" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="justify-start text-sm md:!hidden bg-background" href="../index.html"><span class="font-bold text-clip whitespace-nowrap">liger_iris_sim  documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="examples.html">Examples<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="sim_stars_liger_imager.html">Field of Stars — Liger Imager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sim_stars_liger_ifs.html">Field of Stars — Liger IFS</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Galaxy at z~1 in H-alpha - Liger IFS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sim_velmap_stars_liger_ifs.html">Stellar Velocity Mapping — Liger IFS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sim_raw_frame_liger_ifs.html">Raw IFS Frame — Stellar Spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extract_raw_frame_liger_ifs.html">Raw IFS Frame Extraction — Stellar Spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sim_utr_ramp.html">Up-the-Ramp Readout Simulation — Liger Detector</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../api/api.html">API Reference<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="../api/generated/liger_iris_sim.sky.html">liger_iris_sim.sky</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/generated/liger_iris_sim.sources.html">liger_iris_sim.sources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/generated/liger_iris_sim.expose.html">liger_iris_sim.expose</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/generated/liger_iris_sim.utr.html">liger_iris_sim.utr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/generated/liger_iris_sim.utils.html">liger_iris_sim.utils</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="../index.html">
+<span class="hidden md:inline">liger_iris_sim  documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="examples.html">Examples</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">Galaxy at z~1 in H-alpha - Liger IFS</span>
+</nav>
+<div id="content" role="main">
+<section id="Galaxy-at-z~1-in-H-alpha---Liger-IFS">
+<h1>Galaxy at z~1 in H-alpha - Liger IFS<a class="headerlink" href="#Galaxy-at-z~1-in-H-alpha---Liger-IFS" title="Link to this heading"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
+<p>This notebook simulates a Liger IFS observation of a z~1 galaxy observed in the H-alpha emission line (redshifted to ~1.3 μm) using the Liger instrument at Keck.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="line-2"><span class="kn">import</span><span class="w"> </span><span class="nn">scipy.constants</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">constants</span>
+</span><span id="line-3"><span class="kn">from</span><span class="w"> </span><span class="nn">astropy.convolution</span><span class="w"> </span><span class="kn">import</span> <span class="n">convolve_fft</span>
+</span><span id="line-4"><span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span>
+</span><span id="line-5"><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="line-6">
+</span><span id="line-7"><span class="kn">from</span><span class="w"> </span><span class="nn">liger_iris_sim.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">rebin_image_scipy</span><span class="p">,</span> <span class="n">rebin_spectrum</span>
+</span><span id="line-8"><span class="kn">from</span><span class="w"> </span><span class="nn">liger_iris_sim.sky</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_maunakea_sky_background</span>
+</span><span id="line-9"><span class="kn">from</span><span class="w"> </span><span class="nn">liger_iris_sim.expose</span><span class="w"> </span><span class="kn">import</span> <span class="n">expose_ifs</span><span class="p">,</span> <span class="n">compute_throughput</span>
+</span><span id="line-10"><span class="kn">from</span><span class="w"> </span><span class="nn">liger_iris_sim.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_wave_grid_for_filter</span><span class="p">,</span> <span class="n">LIGER_PROPS</span><span class="p">,</span> <span class="n">get_psf</span>
+</span><span id="line-11"><span class="kn">from</span><span class="w"> </span><span class="nn">liger_iris_sim.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">convolve_spectrum</span>
+</span><span id="line-12">
+</span><span id="line-13"><span class="kn">from</span><span class="w"> </span><span class="nn">liger_iris_drp_resources.filters</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_filters_summary</span>
+</span></code></pre></div>
+</div>
+</div>
+<section id="Load-the-galaxy-input-cube">
+<h2>Load the galaxy input cube<a class="headerlink" href="#Load-the-galaxy-input-cube" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Load-the-galaxy-input-cube'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<p>The input is a hybrid using real data from JWST to deine the spatial flux variations, and an injected H alpha line at each spatial position at a unique redshift to simulate th galaxy rotation (and the bulk redshift).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">gal_input_scale</span> <span class="o">=</span> <span class="mf">0.025</span>   <span class="c1"># arcsec / pixel</span>
+</span><span id="line-2"><span class="n">line_center_obs</span> <span class="o">=</span> <span class="mf">1.3</span>     <span class="c1"># μm — average observed H-alpha wavelength at z~1</span>
+</span><span id="line-3">
+</span><span id="line-4"><span class="k">with</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">'id11978_Halpha_cube_wl.fits'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="line-5">    <span class="n">gal_wave</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>  <span class="c1"># μm</span>
+</span><span id="line-6">
+</span><span id="line-7"><span class="k">with</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">'id11978_Halpha_cube.fits'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="line-8">    <span class="c1"># units: erg / (s * cm^2 * pixel), plate scale 0.025 arcsec/pixel</span>
+</span><span id="line-9">    <span class="n">Ephot</span> <span class="o">=</span> <span class="p">(</span><span class="n">constants</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">constants</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="p">(</span><span class="n">line_center_obs</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">))</span> <span class="o">*</span> <span class="mf">1e7</span>  <span class="c1"># erg / photon</span>
+</span><span id="line-10">    <span class="n">gal_cube</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>           <span class="c1"># erg / (s * cm^2 * pixel)</span>
+</span><span id="line-11">    <span class="n">gal_cube</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">permute_dims</span><span class="p">(</span><span class="n">gal_cube</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>   <span class="c1"># → (wave, y, x)</span>
+</span><span id="line-12">    <span class="n">gal_cube</span> <span class="o">=</span> <span class="n">gal_cube</span> <span class="o">/</span> <span class="n">Ephot</span> <span class="o">*</span> <span class="mi">100</span><span class="o">**</span><span class="mi">2</span>               <span class="c1"># photons / (s * m^2 * pixel)</span>
+</span><span id="line-13">    <span class="n">gal_cube</span> <span class="o">=</span> <span class="n">gal_cube</span><span class="p">[:,</span> <span class="mi">25</span><span class="p">:</span><span class="o">-</span><span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">:</span><span class="o">-</span><span class="mi">25</span><span class="p">]</span>             <span class="c1"># crop border</span>
+</span><span id="line-14">    <span class="n">gal_cube</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">gal_cube</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+</span><span id="line-15">
+</span><span id="line-16"><span class="n">nw_in</span><span class="p">,</span> <span class="n">ny_in</span><span class="p">,</span> <span class="n">nx_in</span> <span class="o">=</span> <span class="n">gal_cube</span><span class="o">.</span><span class="n">shape</span>
+</span><span id="line-17"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Input cube shape  : (</span><span class="si">{</span><span class="n">nw_in</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">ny_in</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">nx_in</span><span class="si">}</span><span class="s2">)  [wave, y, x]"</span><span class="p">)</span>
+</span><span id="line-18"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Input wave range  : </span><span class="si">{</span><span class="n">gal_wave</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> – </span><span class="si">{</span><span class="n">gal_wave</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> μm"</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+<section id="Instrument-and-exposure-parameters">
+<h2>Instrument and exposure parameters<a class="headerlink" href="#Instrument-and-exposure-parameters" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Instrument-and-exposure-parameters'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">instrument_name</span> <span class="o">=</span> <span class="s1">'Liger'</span>
+</span><span id="line-2"><span class="n">instrument_mode</span> <span class="o">=</span> <span class="s1">'ifs'</span>
+</span><span id="line-3"><span class="n">ifs_mode</span> <span class="o">=</span> <span class="s1">'slicer'</span>   <span class="c1"># 'lenslet' or 'slicer'</span>
+</span><span id="line-4"><span class="n">filt</span> <span class="o">=</span> <span class="s1">'JN3'</span>
+</span><span id="line-5"><span class="n">scale</span> <span class="o">=</span> <span class="mf">0.075</span>      <span class="c1"># arcsec / spaxel</span>
+</span><span id="line-6"><span class="n">read_noise</span> <span class="o">=</span> <span class="mi">9</span>      <span class="c1"># e- RMS</span>
+</span><span id="line-7"><span class="n">dark_current</span> <span class="o">=</span> <span class="mf">0.025</span>  <span class="c1"># e- / sec / pixel</span>
+</span><span id="line-8"><span class="n">itime</span> <span class="o">=</span> <span class="mf">900.0</span>  <span class="c1"># sec (15 min per frame)</span>
+</span><span id="line-9"><span class="n">n_frames</span> <span class="o">=</span> <span class="mi">16</span>      <span class="c1"># total = 4 hr</span>
+</span><span id="line-10"><span class="n">resolution</span> <span class="o">=</span> <span class="mi">4_000</span>  <span class="c1"># R = λ / Δλ</span>
+</span><span id="line-11"><span class="n">collarea</span> <span class="o">=</span> <span class="n">LIGER_PROPS</span><span class="p">[</span><span class="s1">'collarea'</span><span class="p">]</span>  <span class="c1"># m^2</span>
+</span><span id="line-12">
+</span><span id="line-13"><span class="c1"># Output FOV matches the input galaxy FOV</span>
+</span><span id="line-14"><span class="c1"># In practice, tHis requires dithers</span>
+</span><span id="line-15"><span class="n">size</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="line-16">    <span class="nb">int</span><span class="p">(</span><span class="n">gal_input_scale</span> <span class="o">/</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">ny_in</span><span class="p">),</span>
+</span><span id="line-17">    <span class="nb">int</span><span class="p">(</span><span class="n">gal_input_scale</span> <span class="o">/</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">nx_in</span><span class="p">),</span>
+</span><span id="line-18"><span class="p">)</span>
+</span><span id="line-19"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Output IFS size: </span><span class="si">{</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> × </span><span class="si">{</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> spaxels"</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+<section id="Load-filter-data-and-build-wavelength-grid">
+<h2>Load filter data and build wavelength grid<a class="headerlink" href="#Load-filter-data-and-build-wavelength-grid" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Load-filter-data-and-build-wavelength-grid'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">load_filters_summary</span></code> returns filter metadata. <code class="docutils literal notranslate"><span class="pre">generate_wave_grid_for_filter</span></code> returns a Nyquist-sampled wavelength grid covering the filter bandpass at the requested spectral resolution.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">filter_info</span> <span class="o">=</span> <span class="n">load_filters_summary</span><span class="p">(</span><span class="n">filter_name</span><span class="o">=</span><span class="n">filt</span><span class="p">)</span>
+</span><span id="line-2">
+</span><span id="line-3"><span class="n">wave</span> <span class="o">=</span> <span class="n">generate_wave_grid_for_filter</span><span class="p">(</span><span class="n">filter_info</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">)</span>
+</span><span id="line-4"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Wavelength grid: </span><span class="si">{</span><span class="n">wave</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> – </span><span class="si">{</span><span class="n">wave</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> μm, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">wave</span><span class="p">)</span><span class="si">}</span><span class="s2"> channels"</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+<section id="Compute-total-throughpout">
+<h2>Compute total throughpout<a class="headerlink" href="#Compute-total-throughpout" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Compute-total-throughpout'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">tput</span> <span class="o">=</span> <span class="n">compute_throughput</span><span class="p">(</span>
+</span><span id="line-2">    <span class="n">instrument_name</span><span class="o">=</span><span class="n">instrument_name</span><span class="p">,</span>
+</span><span id="line-3">    <span class="n">instrument_mode</span><span class="o">=</span><span class="n">instrument_mode</span><span class="p">,</span>
+</span><span id="line-4">    <span class="n">ifs_mode</span><span class="o">=</span><span class="n">ifs_mode</span><span class="p">,</span>
+</span><span id="line-5">    <span class="n">wave</span><span class="o">=</span><span class="n">line_center_obs</span><span class="p">,</span>
+</span><span id="line-6">    <span class="n">tel</span><span class="o">=</span><span class="mf">0.91</span><span class="p">,</span> <span class="n">ao</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+</span><span id="line-7"><span class="p">)</span>
+</span><span id="line-8"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Total throughput at </span><span class="si">{</span><span class="n">line_center_obs</span><span class="si">}</span><span class="s2"> μm (</span><span class="si">{</span><span class="n">ifs_mode</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">tput</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+<section id="Load-PSF">
+<h2>Load PSF<a class="headerlink" href="#Load-PSF" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Load-PSF'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">psf</span><span class="p">,</span> <span class="n">psf_info</span> <span class="o">=</span> <span class="n">get_psf</span><span class="p">(</span>
+</span><span id="line-2">    <span class="n">instrument_name</span><span class="o">=</span><span class="n">instrument_name</span><span class="p">,</span>
+</span><span id="line-3">    <span class="n">instrument_mode</span><span class="o">=</span><span class="n">instrument_mode</span><span class="p">,</span>
+</span><span id="line-4">    <span class="n">wave</span><span class="o">=</span><span class="n">filter_info</span><span class="p">[</span><span class="s1">'wavecenter'</span><span class="p">],</span>
+</span><span id="line-5">    <span class="n">xs</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ys</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="line-6">    <span class="n">output_plate_scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+</span><span id="line-7"><span class="p">)</span>
+</span><span id="line-8"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"PSF shape after rebinning: </span><span class="si">{</span><span class="n">psf</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+<section id="Compute-sky-emission-and-transmission">
+<h2>Compute sky emission and transmission<a class="headerlink" href="#Compute-sky-emission-and-transmission" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Compute-sky-emission-and-transmission'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">sky_data</span> <span class="o">=</span> <span class="n">get_maunakea_sky_background</span><span class="p">(</span>
+</span><span id="line-2">    <span class="n">wave</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
+</span><span id="line-3">    <span class="n">T_tel</span><span class="o">=</span><span class="mi">275</span><span class="p">,</span> <span class="n">T_atm</span><span class="o">=</span><span class="mi">258</span><span class="p">,</span> <span class="n">T_aos</span><span class="o">=</span><span class="mi">243</span><span class="p">,</span>
+</span><span id="line-4">    <span class="n">Em_tel</span><span class="o">=</span><span class="mf">0.09</span><span class="p">,</span> <span class="n">Em_atm</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">Em_aos</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+</span><span id="line-5">    <span class="n">plate_scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+</span><span id="line-6"><span class="p">)</span>
+</span><span id="line-7">
+</span><span id="line-8"><span class="n">sky_em_rate</span> <span class="o">=</span> <span class="n">sky_data</span><span class="p">[</span><span class="s1">'sky_em'</span><span class="p">]</span>
+</span><span id="line-9"><span class="n">sky_trans</span> <span class="o">=</span> <span class="n">sky_data</span><span class="p">[</span><span class="s1">'sky_trans'</span><span class="p">]</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+<section id="Resample-the-galaxy-cube-to-the-observed-IFS-grid">
+<h2>Resample the galaxy cube to the observed IFS grid<a class="headerlink" href="#Resample-the-galaxy-cube-to-the-observed-IFS-grid" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Resample-the-galaxy-cube-to-the-observed-IFS-grid'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="k">def</span><span class="w"> </span><span class="nf">resample_galaxy_cube</span><span class="p">(</span>
+</span><span id="line-2">    <span class="n">gal_wave</span><span class="p">,</span> <span class="n">gal_cube</span><span class="p">,</span> <span class="n">gal_scale</span><span class="p">,</span>
+</span><span id="line-3">    <span class="n">wave_out</span><span class="p">,</span> <span class="n">scale_out</span><span class="p">,</span> <span class="n">size_out</span><span class="p">,</span>
+</span><span id="line-4">    <span class="n">resolution</span><span class="p">,</span> <span class="n">psf</span><span class="p">,</span>
+</span><span id="line-5"><span class="p">):</span>
+</span><span id="line-6"><span class="w">    </span><span class="sd">"""</span>
+</span><span id="line-7"><span class="sd">    Resample a galaxy IFS cube onto the instrument wavelength and spatial grid.</span>
+</span><span id="line-8">
+</span><span id="line-9"><span class="sd">    Parameters</span>
+</span><span id="line-10"><span class="sd">    ----------</span>
+</span><span id="line-11"><span class="sd">    gal_wave : ndarray</span>
+</span><span id="line-12"><span class="sd">        Input wavelength array (μm).</span>
+</span><span id="line-13"><span class="sd">    gal_cube : ndarray, shape (nw, ny, nx)</span>
+</span><span id="line-14"><span class="sd">        Input cube in photons / (s·m²·pixel).</span>
+</span><span id="line-15"><span class="sd">    gal_scale : float</span>
+</span><span id="line-16"><span class="sd">        Input plate scale in arcsec/pixel.</span>
+</span><span id="line-17"><span class="sd">    wave_out : ndarray</span>
+</span><span id="line-18"><span class="sd">        Output wavelength grid (μm).</span>
+</span><span id="line-19"><span class="sd">    scale_out : float</span>
+</span><span id="line-20"><span class="sd">        Output spaxel scale in arcsec/spaxel.</span>
+</span><span id="line-21"><span class="sd">    size_out : tuple (ny_out, nx_out)</span>
+</span><span id="line-22"><span class="sd">        Output spatial dimensions in spaxels.</span>
+</span><span id="line-23"><span class="sd">    resolution : float or None</span>
+</span><span id="line-24"><span class="sd">        Target spectral resolution R. Pass None to skip spectral convolution.</span>
+</span><span id="line-25"><span class="sd">    psf : ndarray or None</span>
+</span><span id="line-26"><span class="sd">        PSF kernel for spatial convolution.</span>
+</span><span id="line-27">
+</span><span id="line-28"><span class="sd">    Returns</span>
+</span><span id="line-29"><span class="sd">    -------</span>
+</span><span id="line-30"><span class="sd">    gal_cube_out : ndarray, shape (nw_out, ny_out, nx_out)</span>
+</span><span id="line-31"><span class="sd">        Resampled cube in photons / (s·m²·spaxel).</span>
+</span><span id="line-32"><span class="sd">    """</span>
+</span><span id="line-33">    <span class="n">nw_in</span><span class="p">,</span> <span class="n">ny_in</span><span class="p">,</span> <span class="n">nx_in</span> <span class="o">=</span> <span class="n">gal_cube</span><span class="o">.</span><span class="n">shape</span>
+</span><span id="line-34">    <span class="n">ny_out</span><span class="p">,</span> <span class="n">nx_out</span> <span class="o">=</span> <span class="n">size_out</span>
+</span><span id="line-35">    <span class="n">nw_out</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wave_out</span><span class="p">)</span>
+</span><span id="line-36">
+</span><span id="line-37">    <span class="c1"># --- spectral resampling ---</span>
+</span><span id="line-38">    <span class="n">gal_cube_specresampled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nw_out</span><span class="p">,</span> <span class="n">ny_in</span><span class="p">,</span> <span class="n">nx_in</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span id="line-39">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ny_in</span><span class="p">):</span>
+</span><span id="line-40">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Spectral resampling row </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">ny_in</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">'</span><span class="se">\r</span><span class="s1">'</span><span class="p">)</span>
+</span><span id="line-41">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nx_in</span><span class="p">):</span>
+</span><span id="line-42">            <span class="n">spec</span> <span class="o">=</span> <span class="n">gal_cube</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+</span><span id="line-43">            <span class="k">if</span> <span class="n">resolution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="line-44">                <span class="n">spec</span> <span class="o">=</span> <span class="n">convolve_spectrum</span><span class="p">(</span><span class="n">gal_wave</span><span class="p">,</span> <span class="n">spec</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">)</span>
+</span><span id="line-45">            <span class="n">gal_cube_specresampled</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">rebin_spectrum</span><span class="p">(</span><span class="n">gal_wave</span><span class="p">,</span> <span class="n">spec</span><span class="p">,</span> <span class="n">wave_out</span><span class="p">)</span>
+</span><span id="line-46">
+</span><span id="line-47">    <span class="c1"># --- spatial resampling + PSF convolution ---</span>
+</span><span id="line-48">    <span class="n">gal_cube_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nw_out</span><span class="p">,</span> <span class="n">ny_out</span><span class="p">,</span> <span class="n">nx_out</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span id="line-49">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nw_out</span><span class="p">):</span>
+</span><span id="line-50">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Spatially resampling and convolving slice </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">nw_out</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">'</span><span class="se">\r</span><span class="s1">'</span><span class="p">)</span>
+</span><span id="line-51">        <span class="n">image</span> <span class="o">=</span> <span class="n">rebin_image_scipy</span><span class="p">(</span>
+</span><span id="line-52">            <span class="n">gal_cube_specresampled</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+</span><span id="line-53">            <span class="n">scale_in</span><span class="o">=</span><span class="n">gal_scale</span><span class="p">,</span>
+</span><span id="line-54">            <span class="n">scale_out</span><span class="o">=</span><span class="n">scale_out</span><span class="p">,</span>
+</span><span id="line-55">        <span class="p">)</span>
+</span><span id="line-56">        <span class="k">if</span> <span class="n">psf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="line-57">            <span class="n">image</span> <span class="o">=</span> <span class="n">convolve_fft</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">psf</span><span class="p">,</span> <span class="n">normalize_kernel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="line-58">        <span class="n">gal_cube_out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+</span><span id="line-59">    <span class="nb">print</span><span class="p">()</span>
+</span><span id="line-60">
+</span><span id="line-61">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">gal_cube_out</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">source_rate</span> <span class="o">=</span> <span class="n">resample_galaxy_cube</span><span class="p">(</span>
+</span><span id="line-2">    <span class="n">gal_wave</span><span class="p">,</span> <span class="n">gal_cube</span><span class="p">,</span> <span class="n">gal_input_scale</span><span class="p">,</span>
+</span><span id="line-3">    <span class="n">wave_out</span><span class="o">=</span><span class="n">wave</span><span class="p">,</span> <span class="n">scale_out</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+</span><span id="line-4">    <span class="n">size_out</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
+</span><span id="line-5">    <span class="n">psf</span><span class="o">=</span><span class="n">psf</span><span class="p">,</span>
+</span><span id="line-6"><span class="p">)</span>
+</span><span id="line-7"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Resampled source cube shape: </span><span class="si">{</span><span class="n">source_rate</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">  [wave, y, x]"</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+<section id="Run-the-IFS-exposure-simulation">
+<h2>Run the IFS exposure simulation<a class="headerlink" href="#Run-the-IFS-exposure-simulation" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Run-the-IFS-exposure-simulation'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">expose_ifs</span></code> applies throughput, sky emission, sky transmission, Poisson noise, dark current, and read noise to produce a simulated data cube.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">sim</span> <span class="o">=</span> <span class="n">expose_ifs</span><span class="p">(</span>
+</span><span id="line-2">    <span class="n">source_rate</span><span class="p">,</span>
+</span><span id="line-3">    <span class="n">itime</span><span class="o">=</span><span class="n">itime</span><span class="p">,</span> <span class="n">n_frames</span><span class="o">=</span><span class="n">n_frames</span><span class="p">,</span> <span class="n">collarea</span><span class="o">=</span><span class="n">collarea</span><span class="p">,</span>
+</span><span id="line-4">    <span class="n">sky_emission_rate</span><span class="o">=</span><span class="n">sky_em_rate</span><span class="p">,</span>
+</span><span id="line-5">    <span class="n">sky_transmission</span><span class="o">=</span><span class="n">sky_trans</span><span class="p">,</span>
+</span><span id="line-6">    <span class="n">tput</span><span class="o">=</span><span class="n">tput</span><span class="p">,</span> <span class="n">read_noise</span><span class="o">=</span><span class="n">read_noise</span><span class="p">,</span> <span class="n">dark_current</span><span class="o">=</span><span class="n">dark_current</span><span class="p">,</span>
+</span><span id="line-7"><span class="p">)</span>
+</span><span id="line-8">
+</span><span id="line-9"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Output cube shape : </span><span class="si">{</span><span class="n">sim</span><span class="p">[</span><span class="s1">'observed_tot'</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="line-10"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Peak SNR (per voxel): </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">'snr'</span><span class="p">])</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+<section id="Visualize-results">
+<h2>Visualize results<a class="headerlink" href="#Visualize-results" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Visualize-results'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">snr_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">'snr'</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+</span><span id="line-2"><span class="n">extent</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">]</span>  <span class="c1"># arcsec</span>
+</span><span id="line-3">
+</span><span id="line-4"><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+</span><span id="line-5">
+</span><span id="line-6"><span class="n">im0</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
+</span><span id="line-7">    <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">'source_rate'</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+</span><span id="line-8">    <span class="n">origin</span><span class="o">=</span><span class="s1">'lower'</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'inferno'</span><span class="p">,</span>
+</span><span id="line-9"><span class="p">)</span>
+</span><span id="line-10"><span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Source rate (e-/s)'</span><span class="p">)</span>
+</span><span id="line-11"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Source (noiseless, collapsed)'</span><span class="p">)</span>
+</span><span id="line-12"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'x (arcsec)'</span><span class="p">)</span>
+</span><span id="line-13"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'y (arcsec)'</span><span class="p">)</span>
+</span><span id="line-14">
+</span><span id="line-15"><span class="n">im1</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">snr_map</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">'lower'</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'viridis'</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="line-16"><span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im1</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">'SNR'</span><span class="p">)</span>
+</span><span id="line-17"><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'SNR integrated over bandpass'</span><span class="p">)</span>
+</span><span id="line-18"><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'x (arcsec)'</span><span class="p">)</span>
+</span><span id="line-19">
+</span><span id="line-20"><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</span><span id="line-21"><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></code></pre></div>
+</div>
+</div>
+<section id="Peak-SNR-spaxel-spectrum">
+<h3>Peak-SNR spaxel spectrum<a class="headerlink" href="#Peak-SNR-spaxel-spectrum" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#Peak-SNR-spaxel-spectrum'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">[ ]:
+</span></code></pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">peak_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanargmax</span><span class="p">(</span><span class="n">snr_map</span><span class="p">),</span> <span class="n">snr_map</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span><span id="line-2"><span class="n">ypeak</span><span class="p">,</span> <span class="n">xpeak</span> <span class="o">=</span> <span class="n">peak_idx</span>
+</span><span id="line-3">
+</span><span id="line-4"><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="line-5">
+</span><span id="line-6"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wave</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s1">'observed_rate'</span><span class="p">][:,</span> <span class="n">ypeak</span><span class="p">,</span> <span class="n">xpeak</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Observed'</span><span class="p">)</span>
+</span><span id="line-7"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wave</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s1">'source_rate'</span><span class="p">][:,</span> <span class="n">ypeak</span><span class="p">,</span> <span class="n">xpeak</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Source (noiseless)'</span><span class="p">)</span>
+</span><span id="line-8"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">line_center_obs</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'k'</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">':'</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">'H-α @ </span><span class="si">{</span><span class="n">line_center_obs</span><span class="si">}</span><span class="s1"> μm'</span><span class="p">)</span>
+</span><span id="line-9"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'Signal (e-/sec)'</span><span class="p">)</span>
+</span><span id="line-10"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</span><span id="line-11"><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Brightest spaxel spectrum (x=</span><span class="si">{</span><span class="n">xpeak</span><span class="si">}</span><span class="s1">, y=</span><span class="si">{</span><span class="n">ypeak</span><span class="si">}</span><span class="s1">)'</span><span class="p">)</span>
+</span><span id="line-12">
+</span><span id="line-13"><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wave</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s1">'snr'</span><span class="p">][:,</span> <span class="n">ypeak</span><span class="p">,</span> <span class="n">xpeak</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">'C2'</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="line-14"><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">line_center_obs</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'k'</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">':'</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+</span><span id="line-15"><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">'SNR per channel'</span><span class="p">)</span>
+</span><span id="line-16"><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">'Wavelength (μm)'</span><span class="p">)</span>
+</span><span id="line-17">
+</span><span id="line-18"><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</span><span id="line-19"><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></code></pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] h-full overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#Load-the-galaxy-input-cube'" class="reference internal" href="#Load-the-galaxy-input-cube">Load the galaxy input cube</a></li>
+<li><a :data-current="activeSection === '#Instrument-and-exposure-parameters'" class="reference internal" href="#Instrument-and-exposure-parameters">Instrument and exposure parameters</a></li>
+<li><a :data-current="activeSection === '#Load-filter-data-and-build-wavelength-grid'" class="reference internal" href="#Load-filter-data-and-build-wavelength-grid">Load filter data and build wavelength grid</a></li>
+<li><a :data-current="activeSection === '#Compute-total-throughpout'" class="reference internal" href="#Compute-total-throughpout">Compute total throughpout</a></li>
+<li><a :data-current="activeSection === '#Load-PSF'" class="reference internal" href="#Load-PSF">Load PSF</a></li>
+<li><a :data-current="activeSection === '#Compute-sky-emission-and-transmission'" class="reference internal" href="#Compute-sky-emission-and-transmission">Compute sky emission and transmission</a></li>
+<li><a :data-current="activeSection === '#Resample-the-galaxy-cube-to-the-observed-IFS-grid'" class="reference internal" href="#Resample-the-galaxy-cube-to-the-observed-IFS-grid">Resample the galaxy cube to the observed IFS grid</a></li>
+<li><a :data-current="activeSection === '#Run-the-IFS-exposure-simulation'" class="reference internal" href="#Run-the-IFS-exposure-simulation">Run the IFS exposure simulation</a></li>
+<li><a :data-current="activeSection === '#Visualize-results'" class="reference internal" href="#Visualize-results">Visualize results</a><ul>
+<li><a :data-current="activeSection === '#Peak-SNR-spaxel-spectrum'" class="reference internal" href="#Peak-SNR-spaxel-spectrum">Peak-SNR spaxel spectrum</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© 2026, Liger and IRIS Data Reduction System Team Built with <a class="font-medium underline underline-offset-4" href="https://www.sphinx-doc.org" rel="noreferrer">Sphinx 8.1.3</a></p>
+</div>
+</div>
+</footer>
+</div>
+<script src="../_static/documentation_options.js?v=5929fcd5"></script>
+<script src="../_static/doctools.js?v=9bcbadda"></script>
+<script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="../_static/theme.js?v=5db23cf8"></script>
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+<script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+<script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>

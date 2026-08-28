@@ -1,0 +1,13 @@
+liger\_iris\_sim.sources.ifs
+============================
+
+.. automodule:: liger_iris_sim.sources.ifs
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_point_source_ifs_cube
+      normalize_spectrum_to_snr
+   

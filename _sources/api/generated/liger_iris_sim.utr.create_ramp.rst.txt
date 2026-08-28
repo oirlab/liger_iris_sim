@@ -1,0 +1,18 @@
+liger\_iris\_sim.utr.create\_ramp
+=================================
+
+.. automodule:: liger_iris_sim.utr.create_ramp
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      compute_channel_psds
+      compute_psd
+      create_ramp
+      generate_1overf_noise
+      generate_1overf_noise_integrated
+      generate_1overf_noise_map
+      utr_variable_rate_cube
+   

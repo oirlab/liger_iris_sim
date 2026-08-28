@@ -1,0 +1,15 @@
+﻿liger\_iris\_sim.sources
+========================
+
+.. automodule:: liger_iris_sim.sources
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   convolve
+   ifs
+   imager

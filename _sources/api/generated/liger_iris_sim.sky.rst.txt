@@ -1,0 +1,15 @@
+﻿liger\_iris\_sim.sky
+====================
+
+.. automodule:: liger_iris_sim.sky
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   background_sky
+   gemini
+   ohlines
